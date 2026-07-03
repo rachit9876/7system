@@ -36,6 +36,10 @@
   <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
   </symbol>
+  <!-- New File -->
+  <symbol id="icon-new-file" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+  </symbol>
   <!-- Lock Unlocked -->
   <symbol id="icon-lock-unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11h8m-8 0V7a4 4 0 0 1 4-4 4 4 0 0 1 4 4m-8 4v0m0 0H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-2M12 15v2"/>
@@ -135,6 +139,9 @@
                 <svg class="w-5 h-5"><use href="#icon-redo"/></svg>
             </button>
             <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="newCanvasBtn" class="btn btn-secondary" title="New Canvas" aria-label="New Canvas">
+                <svg class="w-5 h-5"><use href="#icon-new-file"/></svg>
+            </button>
             <button id="addNodeBtn" class="btn btn-primary" title="Add Node" aria-label="Add Node">
                 <svg class="w-6 h-6"><use href="#icon-plus"/></svg>
             </button>
@@ -397,6 +404,7 @@
             const dom = {
                 undoBtn: document.getElementById('undoBtn'),
                 redoBtn: document.getElementById('redoBtn'),
+                newCanvasBtn: document.getElementById('newCanvasBtn'),
                 addNodeBtn: document.getElementById('addNodeBtn'),
                 zoomInBtn: document.getElementById('zoomInBtn'),
                 zoomOutBtn: document.getElementById('zoomOutBtn'),
@@ -862,6 +870,25 @@
                             updateEditorSize();
                         }
                     }
+                });
+
+                dom.newCanvasBtn.addEventListener('click', () => {
+                    if (state.nodes.length > 0) {
+                        if (!confirm('Are you sure you want to create a new canvas? Any unsaved changes will be lost.')) return;
+                    }
+                    state.nodes = [];
+                    state.nextNodeId = 1;
+                    const center = screenToWorld(canvas.clientWidth / 2, canvas.clientHeight / 2);
+                    const newNode = createNode(center.x, center.y, "Central Idea");
+                    state.selectedNodeId = newNode.id;
+                    state.editingNodeId = null;
+                    state.pan = { x: 0, y: 0 };
+                    state.zoom = 1;
+                    lastCloudMapName = '';
+                    dom.zoomIndicator.textContent = '100%';
+                    hideNodeEditor();
+                    saveState();
+                    requestRedraw();
                 });
 
                 dom.addNodeBtn.addEventListener('click', () => {
