@@ -474,4 +474,4 @@ deleteAccountConfirm.addEventListener('click', async () => {
 
 
 // Init
-loadMindMaps();
+// loadMindMaps() is called via initPortal() once auth is verified.

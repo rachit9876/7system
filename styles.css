@@ -62,6 +62,11 @@ html.dark {
     padding: 0;
 }
 
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
 html,
 body {
     width: 100%;
@@ -560,3 +565,25 @@ button:not(.btn):active {
 .mt-4 { margin-top: 1rem; }
 .pt-3 { padding-top: 0.75rem; }
 .border-t { border-top-width: 1px; border-top-style: solid; border-top-color: var(--border); }
+
+/* Markdown Table Styles */
+.node-content table { width: 100%; border-collapse: collapse; margin-bottom: 0.5em; display: block; overflow-x: auto; }
+.node-content th, .node-content td { border: 1px solid var(--border); padding: 0.5em 0.75em; }
+.node-content th { background: var(--surface-muted); font-weight: bold; text-align: left; }
+
+/* GitHub Alerts Styles */
+.gh-alert { 
+    border-left: 4px solid; 
+    padding: 0.75em 1em; 
+    margin-bottom: 0.75em; 
+    border-radius: var(--radius-sm); 
+    background: color-mix(in srgb, currentColor 5%, transparent); 
+}
+.gh-alert-note { border-color: var(--info); color: var(--info); }
+.gh-alert-tip { border-color: var(--success); color: var(--success); }
+.gh-alert-warning { border-color: #eab308; color: #eab308; }
+.gh-alert-important { border-color: #a855f7; color: #a855f7; }
+.gh-alert-caution { border-color: var(--danger); color: var(--danger); }
+.gh-alert-title { font-weight: 600; margin-bottom: 0.25em; display: flex; align-items: center; gap: 0.35em; font-size: 0.95em; }
+.gh-alert-content { color: var(--text-primary); margin: 0; }
+.gh-alert-content p:last-child { margin-bottom: 0; }
