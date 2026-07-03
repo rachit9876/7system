@@ -1,0 +1,7 @@
+/.wrangler
+/node_modules
+/functions/node_modules
+/.env
+/.env.*
+/dist
+*.vars
