@@ -3,7 +3,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
 // Check Auth
 let sessionAuth = null;
 try {
-    const storedAuth = localStorage.getItem('mapMindSessionAuth');
+    const storedAuth = localStorage.getItem('7systemSessionAuth');
     if (storedAuth) {
         sessionAuth = { username: JSON.parse(storedAuth).username };
     }
@@ -464,7 +464,7 @@ deleteAccountConfirm.addEventListener('click', async () => {
     deleteAccountConfirm.disabled = false;
     
     if (res.success) {
-        localStorage.removeItem('mapMindSessionAuth');
+        localStorage.removeItem('7systemSessionAuth');
         window.location.replace('index.html');
     } else {
         showNotification('Error', res.message, 'error');
