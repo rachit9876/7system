@@ -145,9 +145,7 @@
             <button id="addNodeBtn" class="btn btn-primary" title="Add Node" aria-label="Add Node">
                 <svg class="w-6 h-6"><use href="#icon-plus"/></svg>
             </button>
-            <button id="clearBtn" class="btn btn-secondary" title="Clear All" aria-label="Clear All">
-                <svg class="w-5 h-5"><use href="#icon-trash"/></svg>
-            </button>
+
             <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
             <button id="lockBtn" class="btn btn-secondary" title="Lock Nodes" aria-label="Lock Nodes">
                 <svg id="lock-icon-unlocked" class="w-5 h-5"><use href="#icon-lock-unlocked"/></svg>
@@ -328,6 +326,16 @@
                 onAuthStateChanged(window.firebaseAuth, (user) => {
                     if (user) {
                         sessionAuth = { username: user.email };
+                        const mapToLoad = sessionStorage.getItem('7systemLoadMap');
+                        if (mapToLoad) {
+                            sessionStorage.removeItem('7systemLoadMap');
+                            const checkDOM = setInterval(() => {
+                                if (window.openCloudMap) {
+                                    clearInterval(checkDOM);
+                                    window.openCloudMap(mapToLoad);
+                                }
+                            }, 50);
+                        }
                     } else {
                         sessionAuth = null;
                     }
@@ -899,19 +907,7 @@
                     requestRedraw();
                     startEditingNode(newNode.id);
                 });
-                
-                document.getElementById('clearBtn').addEventListener('click', () => {
-                    if (state.nodes.length === 0) return;
-                    if (!confirm('Are you sure you want to clear all nodes? This cannot be undone.')) return;
-                    state.nodes = [];
-                    state.nextNodeId = 1;
-                    state.selectedNodeId = null;
-                    state.editingNodeId = null;
-                    hideNodeEditor();
-                    saveState();
-                    requestRedraw();
-                });
-                
+
                 dom.zoomInBtn.addEventListener('click', () => zoom(1.2));
                 dom.zoomOutBtn.addEventListener('click', () => zoom(0.8));
                 dom.fitViewBtn.addEventListener('click', fitView);
@@ -1453,6 +1449,10 @@
                 } else {
                     showNotification('Error', result.message, 'error');
                 }
+            };
+
+            window.openCloudMap = (mapName) => {
+                loadFromCloud(sessionAuth.username, null, mapName);
             };
 
             const exportAsRXT = () => {

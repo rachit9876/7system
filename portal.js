@@ -148,7 +148,7 @@ const renderMindMaps = () => {
             <p>Last edited: ${date}</p>
             <div class="grid grid-cols-2 gap-2 mt-2">
                 <button class="btn btn-secondary btn-text text-xs py-1 rename-btn" data-name="${safeName}">Rename</button>
-                <button class="btn btn-secondary btn-text text-xs py-1 export-btn" data-name="${safeName}">Export</button>
+                <button class="btn btn-secondary btn-text text-xs py-1 open-btn" data-name="${safeName}">Open</button>
                 <button class="btn btn-secondary btn-text text-xs py-1 copy-link-btn" data-name="${safeName}">Copy Link</button>
                 <button class="btn btn-danger btn-text text-xs py-1 delete-btn" data-name="${safeName}">Delete</button>
             </div>
@@ -170,7 +170,10 @@ const renderMindMaps = () => {
 
         card.querySelector('.rename-btn').addEventListener('click', () => openRenameModal(map.name));
         card.querySelector('.delete-btn').addEventListener('click', () => singleDelete(map.name));
-        card.querySelector('.export-btn').addEventListener('click', () => singleExport(map.name));
+        card.querySelector('.open-btn').addEventListener('click', () => {
+            sessionStorage.setItem('7systemLoadMap', map.name);
+            window.location.href = 'index.html';
+        });
         card.querySelector('.copy-link-btn').addEventListener('click', () => {
             const url = new URL('mobile.html', window.location.origin + window.location.pathname.replace('portal.html', ''));
             url.searchParams.set('u', sessionAuth.username);
@@ -205,7 +208,8 @@ const renderMindMaps = () => {
             
             if (res.success) {
                 showNotification('Success', makePublic ? 'Mind map is now public!' : 'Mind map is now private.');
-                loadMindMaps(); 
+                map.isPublic = makePublic;
+                renderMindMaps();
             } else {
                 toggleBtn.classList.toggle('active');
                 toggleBtn.setAttribute('aria-checked', !makePublic);
@@ -257,21 +261,14 @@ const singleDelete = async (name) => {
     if (result.success) {
         showNotification('Success', `Deleted ${name}`);
         selectedMapNames.delete(name);
-        await loadMindMaps();
+        mindMaps = mindMaps.filter(m => m.name !== name);
+        renderMindMaps();
     } else {
         showNotification('Error', result.message, 'error');
     }
 };
 
-const singleExport = async (name) => {
-    const result = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, name);
-    
-    if (result.success && result.data) {
-        downloadJson(name, result.data);
-    } else {
-        showNotification('Error', 'Failed to fetch map data for export', 'error');
-    }
-};
+
 
 const downloadJson = (filename, data) => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -400,8 +397,14 @@ renameConfirm.addEventListener('click', async () => {
             selectedMapNames.add(newName);
         }
         
+        const mapObj = mindMaps.find(m => m.name === renamingMapName);
+        if (mapObj) {
+            mapObj.name = newName;
+            mapObj.timestamp = new Date().toISOString();
+        }
+        
         closeRenameModal();
-        await loadMindMaps();
+        renderMindMaps();
     } else {
         showNotification('Error', res.message, 'error');
     }
