@@ -264,7 +264,7 @@ const singleDelete = async (name) => {
 };
 
 const singleExport = async (name) => {
-    const result = await window.firebaseUtils.getMindMap(sessionAuth.username, null, name);
+    const result = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, name);
     
     if (result.success && result.data) {
         downloadJson(name, result.data);
@@ -315,7 +315,7 @@ bulkExportBtn.addEventListener('click', async () => {
             let count = 0;
             for (const map of result.mindmaps) {
                 if (selectedMapNames.has(map.name)) {
-                    const mapRes = await window.firebaseUtils.getMindMap(sessionAuth.username, null, map.name);
+                    const mapRes = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, map.name);
                     if (mapRes.success) {
                         downloadJson(map.name, mapRes.data);
                         count++;
