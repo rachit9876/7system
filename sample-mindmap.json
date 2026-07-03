@@ -1,0 +1,114 @@
+{
+  "timestamp": "2026-06-22T13:18:05.490Z",
+  "settings": {
+    "zoom": 0.9819170588643806,
+    "pan": {
+      "x": -35.42678412120108,
+      "y": 29.965915926343314
+    },
+    "theme": "light",
+    "showGrid": true
+  },
+  "nodes": [
+    {
+      "id": 1,
+      "text": "# Welcome to MapMind\nA powerful markdown mind mapping tool",
+      "x": 660.0312935236768,
+      "y": 32.72376066330086,
+      "width": 358.53125,
+      "height": 76.8,
+      "parentId": null
+    },
+    {
+      "id": 2,
+      "text": "## Advanced Markdown\n**Bold text** and *italic text*\n`code snippets`\n~~strikethrough~~",
+      "x": 815.01841595578,
+      "y": 252.2449458130223,
+      "width": 292.05078125,
+      "height": 121.6,
+      "parentId": 1
+    },
+    {
+      "id": 3,
+      "text": "### Lists & Organization\n- Bullet point 1\n- Bullet point 2\n1. Numbered item\n2. Another item\n\n---\nHorizontal rules supported!",
+      "x": 166.43644455083535,
+      "y": 202.09761816678272,
+      "width": 245.9091796875,
+      "height": 211.20000000000002,
+      "parentId": 1
+    },
+    {
+      "id": 4,
+      "text": "> Blockquote example\n> Multiple lines supported",
+      "x": 908.1326492862117,
+      "y": 519.0348951079387,
+      "width": 220.5390625,
+      "height": 76.8,
+      "parentId": 2
+    },
+    {
+      "id": 5,
+      "text": "### Links & Images\nExplicit Link: [Visit GitHub](https://github.com/rachit9876)\n![Logo](https://mapmind.pages.dev/assets/mapMind.webp) ![Logo](https://mapmind.pages.dev/assets/mapMind.webp)",
+      "x": 1203,
+      "y": 286,
+      "width": 346.4453125,
+      "height": 186.8,
+      "parentId": 2
+    },
+    {
+      "id": 6,
+      "text": "```javascript\n// Code blocks\nconst map = new Map();\nconsole.log(map);\n```",
+      "x": 448,
+      "y": 579,
+      "width": 225.53125,
+      "height": 99.19999999999999,
+      "parentId": 3
+    },
+    {
+      "id": 7,
+      "text": "### New Data Tables!\n\n| Feature | Supported? |\n| :--- | :---: | \n| **Tables** | Yes |\n| *Auto Links* | Yes |\n| ~~Bugs~~ | No |",
+      "x": 535.5571953137567,
+      "y": 285.05904186527954,
+      "width": 224.4453125,
+      "height": 246.39999999999998,
+      "parentId": 1
+    },
+    {
+      "id": 8,
+      "text": "### Flowcharts & Diagrams\n```mermaid\ngraph TD\n  A[Start] --> B{Good?}\n  B -->|Yes| C[Enjoy!]\n  B -->|No| D[Fix it]\n```",
+      "x": 660,
+      "y": 600,
+      "width": 350,
+      "height": 300,
+      "parentId": 1
+    },
+    {
+      "id": 9,
+      "text": "### Task Lists & Hierarchy\n- [x] Implemented features\n- [ ] Future ideas\n  - Nested lists\n    - Different bullets",
+      "x": 100,
+      "y": 480,
+      "width": 250,
+      "height": 150,
+      "parentId": 3
+    },
+    {
+      "id": 10,
+      "text": "> [!TIP]\n> Use GitHub alerts to highlight things!\n\n> [!WARNING]\n> They catch the eye easily.",
+      "x": 1200,
+      "y": 550,
+      "width": 300,
+      "height": 150,
+      "parentId": 2
+    }
+  ],
+  "preview": {
+    "canvasWidth": 1536,
+    "canvasHeight": 758,
+    "nodeCount": 10
+  },
+  "metadata": {
+    "nextNodeId": 11,
+    "selectedNodeId": null,
+    "version": "1.0"
+  }
+}

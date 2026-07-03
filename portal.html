@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Map Mind</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        .portal-main {
+            padding: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            overflow-y: auto;
+        }
+        @media (min-width: 768px) {
+            .portal-main {
+                padding: 2rem;
+            }
+        }
+        .portal-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-raised);
+        }
+        @media (min-width: 768px) {
+            .portal-section {
+                padding: 2rem;
+                margin-bottom: 2rem;
+            }
+        }
+        .portal-section h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        @media (min-width: 768px) {
+            .portal-section h2 {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+        }
+        .map-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 640px) {
+            .map-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+        }
+        .map-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .map-card:hover {
+            box-shadow: var(--shadow-raised);
+            transform: translateY(-2px);
+        }
+        .map-card h3 {
+            margin-bottom: 0.25rem;
+            font-size: 1.05rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 2rem; /* space for checkbox */
+        }
+        .map-card p {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 0.75rem;
+            flex-grow: 1;
+        }
+        /* Toggle Switch */
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--border);
+            border-radius: 40px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            flex-shrink: 0;
+            outline: none;
+        }
+
+        .toggle.active {
+            background: var(--success, #2c8c5c);
+        }
+
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            border-radius: 50%;
+            transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), background 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .toggle.active .toggle-knob {
+            transform: translateX(20px);
+        }
+
+        .toggle:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .map-checkbox {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+            max-width: 400px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg);
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-soft);
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+        .btn-danger:hover {
+            background: #991b1b;
+        }
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .bulk-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .bulk-actions {
+                width: auto;
+            }
+        }
+        /* Overrides to standard btn classes for text buttons */
+        .btn-text {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            justify-content: center;
+        }
+        @media (min-width: 640px) {
+            .btn-text {
+                width: auto;
+            }
+        }
+        /* Grid Utilities */
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        @media (min-width: 768px) {
+            .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        .gap-8 { gap: 2rem; }
+
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <!-- Sun -->
+    <symbol id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/>
+    </symbol>
+    <!-- Moon -->
+    <symbol id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"/>
+    </symbol>
+    <!-- Arrow Left -->
+    <symbol id="icon-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </symbol>
+    <!-- Check -->
+    <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+    </symbol>
+    <!-- X -->
+    <symbol id="icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+    </symbol>
+    <!-- Upload / Import -->
+    <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+    </symbol>
+    <!-- Share -->
+    <symbol id="icon-share" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+    </symbol>
+</svg>
+
+<header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 md:p-4 flex justify-between items-center z-20">
+    <div class="header-left flex items-center gap-2">
+        <img src="assets/mapMind.webp" alt="Map Mind Logo" class="w-6 h-6 md:w-8 md:h-8">
+        <h1 class="text-lg md:text-2xl font-semibold tracking-tight">Dashboard</h1>
+    </div>
+    
+    <div class="header-right flex items-center gap-2">
+        <a href="index.html" class="btn btn-secondary w-auto px-2 md:px-4 text-sm font-medium" title="Back to Editor">
+            <svg class="w-4 h-4 md:w-5 md:h-5 md:mr-2"><use href="#icon-arrow-left"/></svg>
+            <span class="hidden md:inline">Editor</span>
+        </a>
+        <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme" aria-label="Toggle Theme">
+            <svg id="theme-icon-light" class="w-5 h-5"><use href="#icon-sun"/></svg>
+            <svg id="theme-icon-dark" class="w-5 h-5 hidden"><use href="#icon-moon"/></svg>
+        </button>
+    </div>
+</header>
+
+<main class="flex-1 relative bg-[var(--bg)] overflow-y-auto">
+    <div class="portal-main">
+        
+        <section class="portal-section">
+            <div class="action-bar flex-col sm:flex-row items-start sm:items-center">
+                <h2 class="mb-0">My Mind Maps</h2>
+                <div class="bulk-actions mt-3 sm:mt-0">
+                    <label class="btn btn-secondary btn-text cursor-pointer w-full sm:w-auto" title="Import JSON files">
+                        <svg class="w-4 h-4 mr-2"><use href="#icon-upload"/></svg>
+                        Import
+                        <input type="file" id="bulkImportInput" multiple accept=".json" class="hidden">
+                    </label>
+                    <button id="bulkExportBtn" class="btn btn-secondary btn-text w-full sm:w-auto" disabled>Export Selected</button>
+                    <button id="bulkDeleteBtn" class="btn btn-danger btn-text w-full sm:w-auto" disabled>Delete Selected</button>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 accent-[var(--accent)] mr-2">
+                    <span class="text-sm font-medium">Select All</span>
+                </label>
+            </div>
+            
+            <div id="mindmapsGrid" class="map-grid">
+                <!-- Mind map cards will be injected here -->
+                <p class="text-[var(--text-secondary)]">Loading mind maps...</p>
+            </div>
+        </section>
+
+        <section class="portal-section">
+            <h2>Account Settings</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-lg font-medium mb-4">Change Password</h3>
+                    <form id="changePasswordForm" onsubmit="event.preventDefault();">
+                        <div class="form-group">
+                            <label for="oldPassword">Current Password</label>
+                            <input type="password" id="oldPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" id="newPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmNewPassword">Confirm New Password</label>
+                            <input type="password" id="confirmNewPassword" required>
+                        </div>
+                        <button id="changePasswordBtn" class="btn btn-secondary btn-text w-full sm:w-auto" style="background: var(--accent); color: white;">Update Password</button>
+                    </form>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-medium mb-4 text-[var(--danger)]">Danger Zone</h3>
+                    <p class="text-sm text-[var(--text-secondary)] mb-4">
+                        Deleting your account is permanent. All your mind maps and data will be removed immediately. This action cannot be undone.
+                    </p>
+                    <button id="triggerDeleteAccountBtn" class="btn btn-danger btn-text">Delete Account</button>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</main>
+
+<!-- Modals -->
+
+<!-- Rename Modal -->
+<div id="renameModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+        <h3 class="text-lg font-semibold mb-4">Rename Mind Map</h3>
+        <div class="mb-4">
+            <label for="newMapNameInput" class="block text-sm font-medium mb-2">New Name:</label>
+            <input type="text" id="newMapNameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+        </div>
+        <div class="flex gap-2 justify-end">
+            <button id="renameCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+            <button id="renameConfirm" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Rename</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Confirm Modal -->
+<div id="deleteAccountModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+        <h3 class="text-lg font-semibold mb-4 text-[var(--danger)]">Confirm Account Deletion</h3>
+        <p class="text-sm text-[var(--text-secondary)] mb-4">Please enter your password to confirm account deletion.</p>
+        <div class="mb-4">
+            <input type="password" id="deleteAccountPassword" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Password">
+        </div>
+        <div class="flex gap-2 justify-end">
+            <button id="deleteAccountCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+            <button id="deleteAccountConfirm" class="px-4 py-2 bg-[var(--danger)] text-white rounded-lg hover:bg-[#991b1b] transition-colors">Permanently Delete</button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Notification Toast -->
+<div id="notification" class="fixed bottom-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-4 transform translate-y-20 transition-transform duration-300 z-50 max-w-md flex items-start opacity-0 pointer-events-none">
+    <div id="notificationIcon" class="mr-3 mt-0.5"></div>
+    <div>
+        <h4 id="notificationTitle" class="font-semibold text-sm"></h4>
+        <p id="notificationMessage" class="text-xs text-[var(--text-secondary)] mt-1"></p>
+    </div>
+</div>
+
+<script type="module" src="api.js"></script>
+<script type="module" src="portal.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,2686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Mind</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        // Redirect small screens to the mobile notice page.
+        if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+            window.location.replace('mobile.html');
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        });
+    </script>
+</head>
+<body class="flex flex-col h-screen">
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <!-- Undo -->
+  <symbol id="icon-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4m0 0l4-4m-4 4h12.5a5.5 5.5 0 0 1 0 11H13"/>
+  </symbol>
+  <!-- Redo -->
+  <symbol id="icon-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 14l4-4m0 0l-4-4m4 4H6.5a5.5 5.5 0 0 0 0 11H11"/>
+  </symbol>
+  <!-- Add/Plus -->
+  <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </symbol>
+  <!-- Trash -->
+  <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+  </symbol>
+  <!-- Lock Unlocked -->
+  <symbol id="icon-lock-unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11h8m-8 0V7a4 4 0 0 1 4-4 4 4 0 0 1 4 4m-8 4v0m0 0H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-2M12 15v2"/>
+  </symbol>
+  <!-- Lock Locked -->
+  <symbol id="icon-lock-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/>
+  </symbol>
+  <!-- Minus -->
+  <symbol id="icon-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+  </symbol>
+  <!-- Fit View -->
+  <symbol id="icon-fit-view" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4"/>
+  </symbol>
+  <!-- Import -->
+  <symbol id="icon-import" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3M12 3v12m0 0l-4-4m4 4l4-4"/>
+  </symbol>
+  <!-- Export -->
+  <symbol id="icon-export" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3M12 12V3m0 0L8 7m4-4l4 4"/>
+  </symbol>
+  <!-- Cloud Upload -->
+  <symbol id="icon-cloud-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+  </symbol>
+  <!-- Cloud Download -->
+  <symbol id="icon-cloud-download" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 11l3 3m0 0l3-3m-3 3V4"/>
+  </symbol>
+  <!-- Markdown Off -->
+  <symbol id="icon-markdown-off" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l-3 3 3 3m8-6l3 3-3 3M13 5L11 19"/>
+  </symbol>
+  <!-- Markdown On -->
+  <symbol id="icon-markdown-on" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M3 5h2v14H3V5zm4 0h2v14H7V5zm4 0h4v2h-4V5zm0 4h4v2h-4V9zm0 4h4v2h-4v-2zm6-8h2v14h-2V5z"/>
+  </symbol>
+  <!-- Sun -->
+  <symbol id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/>
+  </symbol>
+  <!-- Moon -->
+  <symbol id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"/>
+  </symbol>
+  <!-- Eye -->
+  <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+  </symbol>
+  <!-- Check -->
+  <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+  </symbol>
+  <!-- X -->
+  <symbol id="icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+  </symbol>
+  <!-- Info -->
+  <symbol id="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  </symbol>
+  <!-- Grid -->
+  <symbol id="icon-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4v16M12 4v16M18 4v16"/>
+  </symbol>
+  <!-- User/Account -->
+  <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 21v-2a4 4 0 00-4-4H10a4 4 0 00-4 4v2"/>
+  </symbol>
+  <!-- Dashboard/Portal -->
+  <symbol id="icon-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+  </symbol>
+</svg>
+
+    <header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 flex justify-between items-center z-20">
+        <div class="header-left flex items-center gap-2">
+            <img src="assets/mapMind.webp" alt="Map Mind Logo" class="w-8 h-8">
+            <h1 class="text-2xl font-semibold tracking-tight">Map Mind</h1>
+            <button id="importBtn" class="btn btn-secondary" title="Import" aria-label="Import">
+                <svg class="w-5 h-5"><use href="#icon-import"/></svg>
+            </button>
+            <button id="exportBtn" class="btn btn-secondary" title="Export" aria-label="Export">
+                <svg class="w-5 h-5"><use href="#icon-export"/></svg>
+            </button>
+        </div>
+        <div class="toolbar-center absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-md">
+            <button id="undoBtn" class="btn btn-secondary" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
+                <svg class="w-5 h-5"><use href="#icon-undo"/></svg>
+            </button>
+            <button id="redoBtn" class="btn btn-secondary" title="Redo (Ctrl+Y)" aria-label="Redo" disabled>
+                <svg class="w-5 h-5"><use href="#icon-redo"/></svg>
+            </button>
+            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="addNodeBtn" class="btn btn-primary" title="Add Node" aria-label="Add Node">
+                <svg class="w-6 h-6"><use href="#icon-plus"/></svg>
+            </button>
+            <button id="clearBtn" class="btn btn-secondary" title="Clear All" aria-label="Clear All">
+                <svg class="w-5 h-5"><use href="#icon-trash"/></svg>
+            </button>
+            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="lockBtn" class="btn btn-secondary" title="Lock Nodes" aria-label="Lock Nodes">
+                <svg id="lock-icon-unlocked" class="w-5 h-5"><use href="#icon-lock-unlocked"/></svg>
+                <svg id="lock-icon-locked" class="w-5 h-5 hidden"><use href="#icon-lock-locked"/></svg>
+            </button>
+            <button id="zoomOutBtn" class="btn btn-secondary" title="Zoom Out (-)" aria-label="Zoom Out">
+                <svg class="w-5 h-5"><use href="#icon-minus"/></svg>
+            </button>
+            <div id="zoomIndicator" class="text-sm font-semibold w-16 text-center">100%</div>
+            <button id="zoomInBtn" class="btn btn-secondary" title="Zoom In (+)" aria-label="Zoom In">
+                <svg class="w-6 h-6"><use href="#icon-plus"/></svg>
+            </button>
+            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View" aria-label="Fit to View">
+                <svg class="w-5 h-5"><use href="#icon-fit-view"/></svg>
+            </button>
+            <button id="gridToggle" class="btn btn-secondary" title="Toggle Grid" aria-label="Toggle Grid">
+                <svg class="w-5 h-5"><use href="#icon-grid"/></svg>
+            </button>
+        </div>
+
+        <div class="header-right flex items-center gap-2">
+            <button id="accountBtn" class="btn btn-secondary" title="Account" aria-label="Account">
+                <svg class="w-5 h-5"><use href="#icon-user"/></svg>
+            </button>
+            <a href="portal.html" id="portalBtn" class="btn btn-secondary hidden" title="Dashboard/Portal" aria-label="Dashboard">
+                <svg class="w-5 h-5"><use href="#icon-dashboard"/></svg>
+            </a>
+            <button id="logoutBtn" class="btn btn-secondary hidden" title="Logout" aria-label="Logout">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            </button>
+            <button id="cloudSaveBtn" class="btn btn-secondary hidden" title="Save to Cloud" aria-label="Save to Cloud">
+                <svg class="w-5 h-5"><use href="#icon-cloud-upload"/></svg>
+            </button>
+            <button id="cloudLoadBtn" class="btn btn-secondary hidden" title="Load from Cloud" aria-label="Load from Cloud">
+                <svg class="w-5 h-5"><use href="#icon-cloud-download"/></svg>
+            </button>
+            <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme" aria-label="Toggle Theme">
+                <svg id="theme-icon-light" class="w-5 h-5"><use href="#icon-sun"/></svg>
+                <svg id="theme-icon-dark" class="w-5 h-5 hidden"><use href="#icon-moon"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 relative">
+    <canvas id="mindMapCanvas"></canvas>
+    <textarea id="node-editor" class="absolute text-left outline-none bg-[var(--node-bg)] border border-[var(--node-border)] text-[var(--node-text)] rounded-lg p-2 z-10 resize-none shadow-lg" rows="1" wrap="soft"></textarea>
+    </main>
+
+    <div id="context-menu" class="absolute hidden z-30 rounded-lg shadow-lg w-48">
+        <ul class="py-1">
+            <li id="menu-add-child" class="px-4 py-2 cursor-pointer">Add Child</li>
+            <li id="menu-add-node" class="px-4 py-2 cursor-pointer">Add Node</li>
+            <li id="menu-connect" class="px-4 py-2 cursor-pointer">Connect</li>
+            <li id="menu-delete-node" class="px-4 py-2 cursor-pointer">Delete Node</li>
+            <li id="menu-disconnect" class="px-4 py-2 cursor-pointer">Disconnect</li>
+        </ul>
+    </div>
+    
+    <input type="file" id="file-input" class="hidden" accept=".json">
+    
+    <!-- Account Login/Register Modal -->
+    <div id="accountModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+            <h3 class="text-lg font-semibold mb-4">Account</h3>
+            <div class="mb-4">
+                <label for="accountUsernameInput" class="block text-sm font-medium mb-2">Email:</label>
+                <input type="email" id="accountUsernameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter email address">
+            </div>
+            <div class="mb-4">
+                <label for="accountPasswordInput" class="block text-sm font-medium mb-2">Password:</label>
+                <input type="password" id="accountPasswordInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter password">
+            </div>
+            <div id="accountStatus" class="text-sm text-[var(--text-secondary)] mb-4 hidden"></div>
+            <div class="flex gap-2 justify-end">
+                <button id="accountCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+                <button id="accountLogin" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Login / Register</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cloud Save/Load Modal -->
+    <div id="cloudModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4 max-h-[90vh] flex flex-col">
+            <h3 id="modalTitle" class="text-lg font-semibold mb-4">Save to Cloud</h3>
+            <div class="mb-4">
+                <label for="mindmapNameInput" class="block text-sm font-medium mb-2">Mind Map Name:</label>
+                <input type="text" id="mindmapNameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter mind map name">
+            </div>
+            <div id="cloudModalExistingListContainer" class="mb-4 hidden flex-1 min-h-[100px] overflow-y-auto border border-[var(--border)] rounded-lg p-2">
+                <div class="text-xs font-medium mb-2 text-[var(--text-secondary)] uppercase tracking-wider">Existing Maps (Click to overwrite)</div>
+                <div id="cloudModalExistingList" class="space-y-1"></div>
+            </div>
+            <div class="flex gap-2 justify-end mt-auto">
+                <button id="modalCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+                <button id="modalConfirm" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Override Confirmation Modal -->
+    <div id="overrideModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+            <h3 class="text-lg font-semibold mb-4">Override Existing?</h3>
+            <p class="text-sm text-[var(--text-secondary)] mb-4">A project with this name already exists. Do you want to overwrite the existing one?</p>
+            <div class="flex gap-2 justify-end">
+                <button id="overrideNo" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">No</button>
+                <button id="overrideYes" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Yes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project List Modal -->
+    <div id="projectListModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Your Mind Maps</h3>
+                <button id="projectListClose" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                    <svg class="w-5 h-5"><use href="#icon-x"/></svg>
+                </button>
+            </div>
+            <div id="projectListContent" class="max-h-96 overflow-y-auto border border-[var(--border)] rounded-lg bg-[var(--bg)] p-2">
+                <!-- Project list will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="fixed bottom-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-4 transform translate-y-20 transition-transform duration-300 z-50 max-w-md">
+        <div class="flex items-start">
+            <div id="notificationIcon" class="mr-3 mt-0.5">
+                <!-- Icon will be inserted here -->
+            </div>
+            <div>
+                <h4 id="notificationTitle" class="font-semibold"></h4>
+                <p id="notificationMessage" class="text-sm text-[var(--text-secondary)]"></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="api.js"></script>
+    <script type="module">
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+        // API handled by api.js
+
+        let sessionAuth = null;
+        let lastCloudMapName = '';
+
+        const updateAuthUI = () => {
+            if (sessionAuth) {
+                document.getElementById('cloudSaveBtn').classList.remove('hidden');
+                document.getElementById('cloudLoadBtn').classList.remove('hidden');
+                document.getElementById('logoutBtn').classList.remove('hidden');
+                document.getElementById('portalBtn').classList.remove('hidden');
+                document.getElementById('accountBtn').classList.add('hidden');
+            } else {
+                document.getElementById('cloudSaveBtn').classList.add('hidden');
+                document.getElementById('cloudLoadBtn').classList.add('hidden');
+                document.getElementById('logoutBtn').classList.add('hidden');
+                document.getElementById('portalBtn').classList.add('hidden');
+                document.getElementById('accountBtn').classList.remove('hidden');
+            }
+        };
+
+        try {
+            const storedAuth = localStorage.getItem('mapMindSessionAuth');
+            if (storedAuth) {
+                // Keep username just for UI if needed, but don't store password anymore
+                const parsed = JSON.parse(storedAuth);
+                sessionAuth = { username: parsed.username };
+                localStorage.setItem('mapMindSessionAuth', JSON.stringify(sessionAuth));
+            }
+        } catch(e) {}
+
+        // Wait for Firebase to initialize
+        setTimeout(() => {
+            if (window.firebaseAuth) {
+                onAuthStateChanged(window.firebaseAuth, (user) => {
+                    if (user) {
+                        sessionAuth = { username: user.email };
+                    } else {
+                        sessionAuth = null;
+                    }
+                    updateAuthUI();
+                });
+            }
+        }, 100);
+
+        let notificationTimer = null;
+
+        // Notification system
+        function showNotification(title, message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const notificationIcon = document.getElementById('notificationIcon');
+            
+            // Set content
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            
+            // Set icon based on type
+            if (type === 'success') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-green-500"><use href="#icon-check"/></svg>';
+            } else if (type === 'error') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-red-500"><use href="#icon-x"/></svg>';
+            } else if (type === 'info') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-blue-500"><use href="#icon-info"/></svg>';
+            }
+            
+            // Show notification
+            notification.classList.remove('translate-y-20');
+            notification.classList.add('translate-y-0');
+            
+            if (notificationTimer) {
+                clearTimeout(notificationTimer);
+            }
+
+            // Hide after 3 seconds
+            notificationTimer = setTimeout(() => {
+                notification.classList.remove('translate-y-0');
+                notification.classList.add('translate-y-20');
+                notificationTimer = null;
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('mindMapCanvas');
+            const ctx = canvas.getContext('2d');
+            const nodeEditor = document.getElementById('node-editor');
+            const contextMenu = document.getElementById('context-menu');
+
+            let state = {
+                nodes: [],
+                pan: { x: 0, y: 0 },
+                zoom: 1,
+                nextNodeId: 1,
+                selectedNodeId: null,
+                editingNodeId: null,
+                editingOriginalText: null,
+                draggingNodeId: null,
+                dragStart: { x: 0, y: 0 },
+                hasPointerMoved: false,
+                isDragging: false,
+                isPanning: false,
+                history: [],
+                historyIndex: -1,
+                redrawPending: false,
+                connecting: false,
+                nodesLocked: false,
+                showGrid: true,
+            };
+
+            const dom = {
+                undoBtn: document.getElementById('undoBtn'),
+                redoBtn: document.getElementById('redoBtn'),
+                addNodeBtn: document.getElementById('addNodeBtn'),
+                zoomInBtn: document.getElementById('zoomInBtn'),
+                zoomOutBtn: document.getElementById('zoomOutBtn'),
+                zoomIndicator: document.getElementById('zoomIndicator'),
+                fitViewBtn: document.getElementById('fitViewBtn'),
+                importBtn: document.getElementById('importBtn'),
+                exportBtn: document.getElementById('exportBtn'),
+                cloudSaveBtn: document.getElementById('cloudSaveBtn'),
+                cloudLoadBtn: document.getElementById('cloudLoadBtn'),
+                themeToggle: document.getElementById('themeToggle'),
+                themeIconLight: document.getElementById('theme-icon-light'),
+                themeIconDark: document.getElementById('theme-icon-dark'),
+                lockBtn: document.getElementById('lockBtn'),
+                lockIconUnlocked: document.getElementById('lock-icon-unlocked'),
+                lockIconLocked: document.getElementById('lock-icon-locked'),
+                gridToggle: document.getElementById('gridToggle'),
+                fileInput: document.getElementById('file-input'),
+            };
+
+            const FONT_SIZE = 16;
+            const NODE_PADDING = 16;
+            const EDITOR_EXTRA_PADDING = 24;
+
+            // Cached CSS variables for performance (avoid getComputedStyle per frame)
+            let cssVars = {};
+            const refreshCssVars = () => {
+                const style = getComputedStyle(document.documentElement);
+                ['--bg', '--bg-secondary', '--surface', '--border', '--node-bg', '--node-border', '--node-text', '--node-shadow', '--line', '--link', '--selection', '--text-primary', '--text-secondary'].forEach(name => {
+                    cssVars[name] = style.getPropertyValue(name).trim();
+                });
+            };
+            const getCachedVar = (name) => cssVars[name] || getCssVar(name);
+
+            // --- Core Functions ---
+            const resizeCanvas = () => {
+                const container = canvas.parentElement;
+                const rect = container.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                canvas.style.width = `${rect.width}px`;
+                canvas.style.height = `${rect.height}px`;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                requestRedraw();
+            };
+
+            const requestRedraw = () => {
+                if (state.redrawPending) return;
+                state.redrawPending = true;
+                requestAnimationFrame(draw);
+            };
+
+            const draw = () => {
+                state.redrawPending = false;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw dot grid
+                ctx.save();
+                ctx.translate(state.pan.x, state.pan.y);
+                ctx.scale(state.zoom, state.zoom);
+                
+                if (state.showGrid) {
+                    const dotSpacing = 30;
+                    const effectiveSpacing = dotSpacing * state.zoom;
+                    // Skip grid rendering if dots would be too dense
+                    if (effectiveSpacing >= 8) {
+                        const dotSize = 1.5;
+                        const startX = Math.floor(-state.pan.x / state.zoom / dotSpacing) * dotSpacing;
+                        const startY = Math.floor(-state.pan.y / state.zoom / dotSpacing) * dotSpacing;
+                        const endX = startX + (canvas.clientWidth / state.zoom) + dotSpacing;
+                        const endY = startY + (canvas.clientHeight / state.zoom) + dotSpacing;
+                        
+                        ctx.fillStyle = getCachedVar('--border');
+                        ctx.globalAlpha = 0.3;
+                        for (let x = startX; x < endX; x += dotSpacing) {
+                            for (let y = startY; y < endY; y += dotSpacing) {
+                                ctx.beginPath();
+                                ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
+                        ctx.globalAlpha = 1;
+                    }
+                }
+                
+                drawConnections();
+                drawNodes();
+
+                if (state.connecting && state.selectedNodeId) {
+                    drawConnectionLineToCursor();
+                }
+
+                ctx.restore();
+            };
+
+            const drawNodes = () => {
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                for (const node of state.nodes) {
+                    // Only recalculate dimensions when text changes
+                    if (node._cachedText !== node.text) {
+                        updateNodeDimensions(node);
+                        node._cachedText = node.text;
+                    }
+                    
+                    ctx.fillStyle = getCachedVar('--node-bg');
+                    ctx.strokeStyle = getCachedVar(node.id === state.selectedNodeId ? '--selection' : '--node-border');
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = getCachedVar('--node-shadow');
+                    ctx.shadowBlur = 10;
+
+                    fillRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
+                    strokeRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
+                    
+                    ctx.shadowColor = 'transparent';
+                    
+                    if (node.id !== state.editingNodeId) {
+                        ctx.fillStyle = getCachedVar('--node-text');
+                        renderMarkdownText(ctx, node.text, node.x + NODE_PADDING, node.y + NODE_PADDING);
+                    }
+                }
+            };
+
+            const drawConnections = () => {
+                ctx.strokeStyle = getCachedVar('--line');
+                ctx.lineWidth = 2.5;
+                for (const node of state.nodes) {
+                    if (node.parentId) {
+                        const parent = findNodeById(node.parentId);
+                        if (parent) {
+                            const start = { x: parent.x + parent.width / 2, y: parent.y + parent.height / 2 };
+                            const end = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
+                            
+                            ctx.beginPath();
+                            ctx.moveTo(start.x, start.y);
+                            ctx.bezierCurveTo(start.x + 50, start.y, end.x - 50, end.y, end.x, end.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            };
+
+            const drawConnectionLineToCursor = () => {
+                const startNode = findNodeById(state.selectedNodeId);
+                if (!startNode) return;
+
+                const start = { x: startNode.x + startNode.width / 2, y: startNode.y + startNode.height / 2 };
+                const end = screenToWorld(state.dragStart.x, state.dragStart.y);
+
+                ctx.strokeStyle = getCachedVar('--selection');
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            };
+
+            // --- State & History ---
+            const saveState = () => {
+                const snapshot = JSON.stringify({ nodes: state.nodes, nextNodeId: state.nextNodeId });
+                state.historyIndex++;
+                state.history = state.history.slice(0, state.historyIndex);
+                state.history.push(snapshot);
+                // Cap history at 100 entries to prevent memory bloat
+                if (state.history.length > 100) {
+                    state.history.shift();
+                    state.historyIndex--;
+                }
+                updateHistoryButtons();
+                saveToLocalStorage();
+            };
+
+            const saveToLocalStorage = () => {
+                const saveData = {
+                    nodes: state.nodes,
+                    nextNodeId: state.nextNodeId,
+                    zoom: state.zoom,
+                    pan: state.pan,
+                    showGrid: state.showGrid
+                };
+                try {
+                    localStorage.setItem('mindmap-data', JSON.stringify(saveData));
+                } catch (error) {
+                    showNotification('Storage Full', 'Could not save changes locally.', 'error');
+                }
+            };
+
+            const applyProjectData = (data) => {
+                if (!data || !Array.isArray(data.nodes)) {
+                    throw new Error('Invalid mind map data');
+                }
+
+                state.nodes = data.nodes.map(node => ({
+                    ...node,
+                    id: Number(node.id),
+                    x: Number.isFinite(Number(node.x)) ? Number(node.x) : 0,
+                    y: Number.isFinite(Number(node.y)) ? Number(node.y) : 0,
+                    width: Number.isFinite(Number(node.width)) ? Number(node.width) : 120,
+                    height: Number.isFinite(Number(node.height)) ? Number(node.height) : 60,
+                    text: typeof node.text === 'string' ? node.text : 'New Idea',
+                    parentId: node.parentId ?? null
+                })).filter(node => Number.isFinite(node.id));
+
+                const maxNodeId = state.nodes.reduce((max, node) => Math.max(max, node.id), 0);
+                state.nextNodeId = Math.max(Number(data.metadata?.nextNodeId) || Number(data.nextNodeId) || 1, maxNodeId + 1);
+
+                const settings = data.settings || data;
+                state.zoom = Number.isFinite(Number(settings.zoom)) ? Math.max(0.1, Math.min(15, Number(settings.zoom))) : 1;
+                state.pan = settings.pan && Number.isFinite(Number(settings.pan.x)) && Number.isFinite(Number(settings.pan.y))
+                    ? { x: Number(settings.pan.x), y: Number(settings.pan.y) }
+                    : { x: 0, y: 0 };
+
+                if (settings.theme) {
+                    const isDark = settings.theme === 'dark';
+                    document.documentElement.classList.toggle('dark', isDark);
+                    dom.themeIconLight.classList.toggle('hidden', isDark);
+                    dom.themeIconDark.classList.toggle('hidden', !isDark);
+                    localStorage.setItem('mindmap-theme', settings.theme);
+                }
+                if (settings.showGrid !== undefined) {
+                    state.showGrid = Boolean(settings.showGrid);
+                    dom.gridToggle.classList.toggle('is-active', state.showGrid);
+                }
+
+                state.selectedNodeId = null;
+                state.editingNodeId = null;
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+            };
+
+            const loadFromLocalStorage = () => {
+                const saved = localStorage.getItem('mindmap-data');
+                if (saved) {
+                    try {
+                        applyProjectData(JSON.parse(saved));
+                        return true;
+                    } catch {
+                        localStorage.removeItem('mindmap-data');
+                    }
+                }
+                return false;
+            };
+
+            const undo = () => {
+                if (state.historyIndex > 0) {
+                    state.historyIndex--;
+                    loadState(state.history[state.historyIndex]);
+                }
+            };
+
+            const redo = () => {
+                if (state.historyIndex < state.history.length - 1) {
+                    state.historyIndex++;
+                    loadState(state.history[state.historyIndex]);
+                }
+            };
+            
+            const loadState = (snapshot) => {
+                const loaded = JSON.parse(snapshot);
+                state.nodes = loaded.nodes;
+                state.nextNodeId = loaded.nextNodeId;
+                state.selectedNodeId = null;
+                state.editingNodeId = null;
+                hideNodeEditor();
+                updateHistoryButtons();
+                requestRedraw();
+            };
+
+            const updateHistoryButtons = () => {
+                dom.undoBtn.disabled = state.historyIndex <= 0;
+                dom.redoBtn.disabled = state.historyIndex >= state.history.length - 1;
+            };
+
+            const syncToggleControls = () => {
+                const isDark = document.documentElement.classList.contains('dark');
+                dom.themeIconLight.classList.toggle('hidden', isDark);
+                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                dom.themeToggle.classList.toggle('is-active', isDark);
+                dom.lockIconUnlocked.classList.toggle('hidden', state.nodesLocked);
+                dom.lockIconLocked.classList.toggle('hidden', !state.nodesLocked);
+                dom.lockBtn.classList.toggle('is-active', state.nodesLocked);
+                dom.lockBtn.title = state.nodesLocked ? 'Unlock Nodes' : 'Lock Nodes';
+                dom.gridToggle.classList.toggle('is-active', state.showGrid);
+                dom.gridToggle.title = state.showGrid ? 'Hide Grid' : 'Show Grid';
+            };
+
+            // --- Node Management ---
+            const createNode = (x, y, text = 'New Idea', parentId = null) => {
+                const newNode = {
+                    id: state.nextNodeId++,
+                    text,
+                    x, y,
+                    width: 0, height: 0,
+                    parentId,
+                };
+                updateNodeDimensions(newNode);
+                state.nodes.push(newNode);
+                return newNode;
+            };
+
+            const deleteNode = (nodeId) => {
+                const children = state.nodes.filter(n => n.parentId === nodeId).map(n => n.id);
+                children.forEach(deleteNode);
+                state.nodes = state.nodes.filter(n => n.id !== nodeId);
+            };
+
+            const updateNodeDimensions = (node) => {
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
+                const dimensions = measureMarkdownText(ctx, node.text);
+                node.width = dimensions.width + NODE_PADDING * 2;
+                node.height = dimensions.height + NODE_PADDING * 2;
+            };
+
+            const updateEditorSize = () => {
+                if (!state.editingNodeId) return;
+                const node = findNodeById(state.editingNodeId);
+                if (!node) return;
+                
+                const screenPos = worldToScreen(node.x, node.y);
+                const effectiveZoom = state.zoom;
+                const baseHeight = node.height * effectiveZoom + EDITOR_EXTRA_PADDING * effectiveZoom;
+
+                const targetWidth = Math.min(window.innerWidth * 0.9, (node.width + 100) * effectiveZoom);
+                nodeEditor.style.width = `${targetWidth}px`;
+
+                nodeEditor.style.height = '1px';
+                const neededHeight = nodeEditor.scrollHeight;
+
+                let finalHeight = Math.max(neededHeight, baseHeight);
+                const maxHeight = window.innerHeight * 0.7;
+                finalHeight = Math.min(finalHeight, maxHeight);
+                
+                nodeEditor.style.height = `${finalHeight}px`;
+
+                // Clamp position to viewport bounds
+                let left = screenPos.x;
+                let top = screenPos.y;
+                
+                if (left + targetWidth > window.innerWidth) {
+                    left = window.innerWidth - targetWidth - 10;
+                }
+                if (top + finalHeight > window.innerHeight) {
+                    top = window.innerHeight - finalHeight - 10;
+                }
+                left = Math.max(10, left);
+                top = Math.max(10, top);
+
+                nodeEditor.style.left = `${left}px`;
+                nodeEditor.style.top = `${top}px`;
+            };
+
+            const startEditingNode = (nodeId) => {
+                const node = findNodeById(nodeId);
+                if (!node) return;
+
+                state.editingNodeId = nodeId;
+                state.editingOriginalText = node.text;
+                
+                const effectiveZoom = state.zoom;
+                
+                nodeEditor.value = node.text;
+                nodeEditor.style.fontSize = `${FONT_SIZE * effectiveZoom}px`;
+                nodeEditor.style.padding = `${NODE_PADDING * effectiveZoom}px`;
+                nodeEditor.style.lineHeight = `${FONT_SIZE * 1.4 * effectiveZoom}px`;
+                nodeEditor.classList.add('active');
+                updateEditorSize();
+                nodeEditor.focus();
+                nodeEditor.select();
+                requestRedraw();
+            };
+
+            const finishEditingNode = () => {
+                if (!state.editingNodeId) return;
+                const node = findNodeById(state.editingNodeId);
+                if (node) {
+                    if (state.editingOriginalText !== nodeEditor.value) {
+                        node.text = nodeEditor.value;
+                        updateNodeDimensions(node);
+                        saveState();
+                    }
+                }
+                hideNodeEditor();
+                requestRedraw();
+            };
+            
+            const hideNodeEditor = () => {
+                state.editingNodeId = null;
+                state.editingOriginalText = null;
+                nodeEditor.classList.remove('active');
+            };
+
+            const cancelEditingNode = () => {
+                if (state.editingNodeId) {
+                    const node = findNodeById(state.editingNodeId);
+                    if (node && state.editingOriginalText !== null) {
+                        node.text = state.editingOriginalText;
+                        updateNodeDimensions(node);
+                    }
+                }
+                hideNodeEditor();
+                requestRedraw();
+            };
+
+            // --- Event Handlers ---
+            const setupEventListeners = () => {
+                canvas.addEventListener('mousedown', onMouseDown);
+                canvas.addEventListener('mousemove', onMouseMove);
+                canvas.addEventListener('mouseup', onMouseUp);
+                canvas.addEventListener('mouseleave', onMouseUp);
+                canvas.addEventListener('wheel', onWheel);
+                canvas.addEventListener('dblclick', onDoubleClick);
+                canvas.addEventListener('contextmenu', onContextMenu);
+
+                nodeEditor.addEventListener('blur', finishEditingNode);
+                nodeEditor.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        if (e.shiftKey) {
+                            setTimeout(updateEditorSize, 0);
+                        } else {
+                            e.preventDefault();
+                            finishEditingNode();
+                        }
+                    }
+                    if (e.key === 'Escape') cancelEditingNode();
+                });
+                
+                nodeEditor.addEventListener('input', () => {
+                    updateEditorSize();
+                });
+                
+                nodeEditor.addEventListener('paste', (e) => {
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const urlRegex = /^(https?:\/\/[^\s]+)$/i;
+                    
+                    if (urlRegex.test(pastedText.trim())) {
+                        const start = nodeEditor.selectionStart;
+                        const end = nodeEditor.selectionEnd;
+                        const textBefore = nodeEditor.value.substring(0, start);
+                        const textAfter = nodeEditor.value.substring(end);
+                        const selectedText = nodeEditor.value.substring(start, end);
+                        
+                        // Check if it's already inside markdown links `](`, `<`, or `[text](`
+                        if (!textBefore.endsWith('](') && !textBefore.endsWith('<')) {
+                            e.preventDefault();
+                            
+                            let linkTitle = selectedText;
+                            if (!linkTitle) {
+                                const currentText = nodeEditor.value;
+                                let linkCount = 1;
+                                const matches = currentText.match(/\[Link (\d+)\]/g);
+                                if (matches) {
+                                    linkCount = Math.max(...matches.map(m => parseInt(m.match(/\d+/)[0]))) + 1;
+                                }
+                                linkTitle = `Link ${linkCount}`;
+                            }
+                            
+                            const markdownLink = `[${linkTitle}](${pastedText.trim()})`;
+                            nodeEditor.value = textBefore + markdownLink + textAfter;
+                            nodeEditor.selectionStart = nodeEditor.selectionEnd = start + markdownLink.length;
+                            updateEditorSize();
+                        }
+                    }
+                });
+
+                dom.addNodeBtn.addEventListener('click', () => {
+                    const center = screenToWorld(canvas.clientWidth / 2, canvas.clientHeight / 2);
+                    const newNode = createNode(center.x, center.y);
+                    state.selectedNodeId = newNode.id;
+                    saveState();
+                    requestRedraw();
+                    startEditingNode(newNode.id);
+                });
+                
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    if (state.nodes.length === 0) return;
+                    if (!confirm('Are you sure you want to clear all nodes? This cannot be undone.')) return;
+                    state.nodes = [];
+                    state.nextNodeId = 1;
+                    state.selectedNodeId = null;
+                    state.editingNodeId = null;
+                    hideNodeEditor();
+                    saveState();
+                    requestRedraw();
+                });
+                
+                dom.zoomInBtn.addEventListener('click', () => zoom(1.2));
+                dom.zoomOutBtn.addEventListener('click', () => zoom(0.8));
+                dom.fitViewBtn.addEventListener('click', fitView);
+                dom.undoBtn.addEventListener('click', undo);
+                dom.redoBtn.addEventListener('click', redo);
+                dom.themeToggle.addEventListener('click', toggleTheme);
+                dom.importBtn.addEventListener('click', () => dom.fileInput.click());
+                dom.exportBtn.addEventListener('click', exportAsRXT);
+                dom.fileInput.addEventListener('change', importJSON);
+                dom.cloudSaveBtn.addEventListener('click', showCloudSaveModal);
+                dom.cloudLoadBtn.addEventListener('click', showCloudLoadModal);
+                dom.lockBtn.addEventListener('click', toggleLock);
+                document.getElementById('gridToggle').addEventListener('click', toggleGrid);
+                document.getElementById('accountBtn').addEventListener('click', showAccountModal);
+                document.getElementById('logoutBtn').addEventListener('click', async () => {
+                    if (window.firebaseAuth) {
+                        const { signOut } = await import("https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js");
+                        await signOut(window.firebaseAuth);
+                    }
+                    sessionAuth = null;
+                    updateAuthUI();
+                    showNotification('Success', 'Logged out successfully', 'success');
+                });
+
+                window.addEventListener('resize', resizeCanvas);
+                window.addEventListener('keydown', onKeyDown);
+                document.addEventListener('click', () => hideContextMenu());
+                
+                // Cloud modal event listeners
+                document.getElementById('modalCancel').addEventListener('click', hideCloudModal);
+                document.getElementById('projectListClose').addEventListener('click', () => {
+                    document.getElementById('projectListModal').classList.add('hidden');
+                });
+                
+                // Account modal event listeners
+                document.getElementById('accountCancel').addEventListener('click', hideAccountModal);
+                document.getElementById('accountLogin').addEventListener('click', handleAccountLogin);
+                document.getElementById('accountUsernameInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        document.getElementById('accountPasswordInput').focus();
+                    }
+                    if (e.key === 'Escape') hideAccountModal();
+                });
+                document.getElementById('accountPasswordInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAccountLogin();
+                    }
+                    if (e.key === 'Escape') hideAccountModal();
+                });
+                
+                // Override modal event listeners
+                document.getElementById('overrideNo').addEventListener('click', () => {
+                    document.getElementById('overrideModal').classList.add('hidden');
+                    document.getElementById('cloudModal').classList.remove('hidden');
+                });
+                document.getElementById('overrideYes').addEventListener('click', () => {
+                    document.getElementById('overrideModal').classList.add('hidden');
+                    const mindmapName = document.getElementById('mindmapNameInput').value.trim();
+                    performCloudSave(mindmapName, true);
+                });
+                
+                document.getElementById('mindmapNameInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('modalConfirm').click();
+                    }
+                    if (e.key === 'Escape') hideCloudModal();
+                });
+            };
+
+            const onMouseDown = (e) => {
+                if (e.button === 2) return; // Disable right-click drag
+                
+                hideContextMenu();
+                finishEditingNode();
+                const pos = getMousePos(e);
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+
+                if (state.connecting) {
+                    if (clickedNodeId && clickedNodeId !== state.selectedNodeId) {
+                        const child = findNodeById(clickedNodeId);
+                        if (child) {
+                            child.parentId = state.selectedNodeId;
+                            saveState();
+                        }
+                    }
+                    state.connecting = false;
+                    requestRedraw();
+                    return;
+                }
+
+                // Check for link click before setting up drag
+                if (clickedNodeId) {
+                    const node = findNodeById(clickedNodeId);
+                    if (node) {
+                        const worldPos = screenToWorld(pos.x, pos.y);
+                        const relativeX = worldPos.x - node.x - NODE_PADDING;
+                        const relativeY = worldPos.y - node.y - NODE_PADDING;
+                        const clickedLink = findLinkAtPosition(node.text, relativeX, relativeY);
+                        if (clickedLink) {
+                            window.open(clickedLink, '_blank');
+                            return;
+                        }
+                    }
+                }
+
+                state.selectedNodeId = clickedNodeId;
+
+                if (clickedNodeId && !state.nodesLocked) {
+                    state.isDragging = true;
+                    state.draggingNodeId = clickedNodeId;
+                } else {
+                    state.isPanning = true;
+                }
+                
+                state.dragStart = { x: pos.x, y: pos.y };
+                state.hasPointerMoved = false;
+                requestRedraw();
+            };
+
+            const onMouseMove = (e) => {
+                const pos = getMousePos(e);
+                const dx = (pos.x - state.dragStart.x);
+                const dy = (pos.y - state.dragStart.y);
+
+                // Check if hovering over a link
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+                if (clickedNodeId && !state.isDragging && !state.isPanning) {
+                    const node = findNodeById(clickedNodeId);
+                    if (node) {
+                        const worldPos = screenToWorld(pos.x, pos.y);
+                        const relativeX = worldPos.x - node.x - NODE_PADDING;
+                        const relativeY = worldPos.y - node.y - NODE_PADDING;
+                        const hoveredLink = findLinkAtPosition(node.text, relativeX, relativeY);
+                        canvas.style.cursor = hoveredLink ? 'pointer' : 'default';
+                    }
+                } else {
+                    canvas.style.cursor = 'default';
+                }
+
+                if (state.connecting) {
+                    state.dragStart = { x: pos.x, y: pos.y };
+                    requestRedraw();
+                    return;
+                }
+
+                if (state.isDragging && state.draggingNodeId) {
+                    const node = findNodeById(state.draggingNodeId);
+                    if (node) {
+                        node.x += dx / state.zoom;
+                        node.y += dy / state.zoom;
+                        state.hasPointerMoved = state.hasPointerMoved || Math.abs(dx) > 0 || Math.abs(dy) > 0;
+                        requestRedraw();
+                    }
+                } else if (state.isPanning) {
+                    state.pan.x += dx;
+                    state.pan.y += dy;
+                    state.hasPointerMoved = state.hasPointerMoved || Math.abs(dx) > 0 || Math.abs(dy) > 0;
+                    requestRedraw();
+                }
+                state.dragStart = { x: pos.x, y: pos.y };
+            };
+
+            const onMouseUp = () => {
+                if (state.isDragging && state.hasPointerMoved) saveState();
+                if (state.isPanning && state.hasPointerMoved) saveToLocalStorage();
+                state.isDragging = false;
+                state.isPanning = false;
+                state.hasPointerMoved = false;
+                state.draggingNodeId = null;
+            };
+
+            const onWheel = (e) => {
+                e.preventDefault();
+                const pos = getMousePos(e);
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                zoom(zoomFactor, pos);
+            };
+
+            const onDoubleClick = (e) => {
+                const pos = getMousePos(e);
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+                if (clickedNodeId) {
+                    startEditingNode(clickedNodeId);
+                }
+            };
+
+            const onKeyDown = (e) => {
+                if (state.editingNodeId) return;
+
+                if (e.key === 'Escape' && state.connecting) {
+                    state.connecting = false;
+                    requestRedraw();
+                }
+
+                if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                    e.preventDefault();
+                    dom.fileInput.click();
+                }
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (state.selectedNodeId) {
+                        deleteNode(state.selectedNodeId);
+                        state.selectedNodeId = null;
+                        saveState();
+                        requestRedraw();
+                    }
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') undo();
+                if ((e.ctrlKey || e.metaKey) && e.key === 'y') redo();
+            };
+
+            const onContextMenu = (e) => {
+                e.preventDefault();
+                const pos = getMousePos(e);
+                const nodeId = findNodeAt(pos.x, pos.y);
+                state.selectedNodeId = nodeId;
+                requestRedraw();
+                showContextMenu(e.clientX, e.clientY, nodeId);
+            };
+
+            // --- UI & Menus ---
+            const showContextMenu = (x, y, nodeId) => {
+                contextMenu.style.left = `${x}px`;
+                contextMenu.style.top = `${y}px`;
+                contextMenu.classList.remove('hidden');
+                
+                const menuAddNode = document.getElementById('menu-add-node');
+                const menuAddChild = document.getElementById('menu-add-child');
+                const menuConnect = document.getElementById('menu-connect');
+                const menuDeleteNode = document.getElementById('menu-delete-node');
+                const menuDisconnect = document.getElementById('menu-disconnect');
+
+                menuAddNode.style.display = 'block';
+                menuAddNode.onclick = () => {
+                    const pos = screenToWorld(x, y);
+                    const newNode = createNode(pos.x, pos.y);
+                    state.selectedNodeId = newNode.id;
+                    saveState();
+                    requestRedraw();
+                    startEditingNode(newNode.id);
+                };
+
+                if (nodeId) {
+                    menuAddChild.style.display = 'block';
+                    menuConnect.style.display = 'block';
+                    menuDeleteNode.style.display = 'block';
+                    const node = findNodeById(nodeId);
+                    menuDisconnect.style.display = node.parentId ? 'block' : 'none';
+
+                    menuAddChild.onclick = () => {
+                        const parent = findNodeById(nodeId);
+                        const child = createNode(parent.x + parent.width + 50, parent.y, 'New Child', nodeId);
+                        saveState();
+                        startEditingNode(child.id);
+                    };
+                    menuConnect.onclick = () => {
+                        state.connecting = true;
+                        hideContextMenu();
+                    };
+                    menuDeleteNode.onclick = () => {
+                        deleteNode(nodeId);
+                        state.selectedNodeId = null;
+                        saveState();
+                        requestRedraw();
+                    };
+                    menuDisconnect.onclick = () => {
+                        node.parentId = null;
+                        saveState();
+                        requestRedraw();
+                    };
+                } else {
+                    menuAddChild.style.display = 'none';
+                    menuConnect.style.display = 'none';
+                    menuDeleteNode.style.display = 'none';
+                    menuDisconnect.style.display = 'none';
+                }
+            };
+
+            const hideContextMenu = () => contextMenu.classList.add('hidden');
+
+            const importJSON = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        applyProjectData(data);
+                        saveState();
+                        requestRedraw();
+                    } catch (error) {
+                        showNotification('Error', 'Invalid file format', 'error');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            };
+
+            const showAccountModal = () => {
+                document.getElementById('accountModal').classList.remove('hidden');
+                document.getElementById('accountUsernameInput').focus();
+                document.getElementById('accountStatus').classList.add('hidden');
+            };
+            
+            const hideAccountModal = () => {
+                document.getElementById('accountModal').classList.add('hidden');
+                document.getElementById('accountUsernameInput').value = '';
+                document.getElementById('accountPasswordInput').value = '';
+                document.getElementById('accountStatus').classList.add('hidden');
+            };
+            
+            const handleAccountLogin = async () => {
+                const username = document.getElementById('accountUsernameInput').value.trim();
+                const password = document.getElementById('accountPasswordInput').value.trim();
+                
+                if (!username || !password) {
+                    showNotification('Error', 'Please enter username and password', 'error');
+                    return;
+                }
+                
+                const result = await window.firebaseUtils.loginRegister(username, password);
+                if (result.success) {
+                    sessionAuth = { username };
+                    hideAccountModal();
+                    showNotification('Success', result.message, 'success');
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            };
+            
+            const showCloudSaveModal = async () => {
+                if (!sessionAuth) {
+                    showNotification('Error', 'Please login first', 'error');
+                    showAccountModal();
+                    return;
+                }
+                
+                document.getElementById('modalTitle').textContent = 'Save to Cloud';
+                document.getElementById('mindmapNameInput').value = lastCloudMapName;
+                document.getElementById('modalConfirm').textContent = 'Save';
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('mindmapNameInput').focus();
+                
+                const listContainer = document.getElementById('cloudModalExistingListContainer');
+                const listEl = document.getElementById('cloudModalExistingList');
+                listContainer.classList.add('hidden');
+                
+                // Fetch list
+                const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
+                const existingMindMaps = result.success ? result.mindmaps : [];
+                
+                if (existingMindMaps.length > 0) {
+                    listContainer.classList.add('hidden');
+                    
+                    const renderList = (filterText) => {
+                        listEl.innerHTML = '';
+                        const filtered = existingMindMaps.filter(m => m.name.toLowerCase().includes(filterText.toLowerCase()));
+                        if (filtered.length === 0) {
+                            listEl.innerHTML = '<div class="text-sm text-[var(--text-secondary)] p-2">No matches</div>';
+                            return;
+                        }
+                        filtered.forEach(m => {
+                            const item = document.createElement('div');
+                            item.className = 'p-2 hover:bg-[var(--border)] rounded cursor-pointer text-sm truncate';
+                            item.textContent = m.name;
+                            item.onclick = () => {
+                                document.getElementById('mindmapNameInput').value = m.name;
+                                document.getElementById('modalConfirm').click();
+                            };
+                            listEl.appendChild(item);
+                        });
+                    };
+                    
+                    renderList(document.getElementById('mindmapNameInput').value.trim());
+                    
+                    const inputEl = document.getElementById('mindmapNameInput');
+                    const newListener = (e) => renderList(e.target.value.trim());
+                    if (inputEl._inputListener) inputEl.removeEventListener('input', inputEl._inputListener);
+                    inputEl.addEventListener('input', newListener);
+                    inputEl._inputListener = newListener;
+                }
+                
+                document.getElementById('modalConfirm').onclick = async () => {
+                    const mindmapName = document.getElementById('mindmapNameInput').value.trim();
+                    
+                    if (!mindmapName) {
+                        showNotification('Error', 'Please enter a name', 'error');
+                        return;
+                    }
+                    
+                    const exists = existingMindMaps.some(m => m.name === mindmapName);
+                    if (exists) {
+                        document.getElementById('cloudModal').classList.add('hidden');
+                        document.getElementById('overrideModal').classList.remove('hidden');
+                    } else {
+                        performCloudSave(mindmapName, false);
+                    }
+                };
+            };
+            
+            const showCloudLoadModal = () => {
+                if (!sessionAuth) {
+                    showNotification('Error', 'Please login first', 'error');
+                    showAccountModal();
+                    return;
+                }
+                
+                loadProjectList();
+            };
+            
+            const loadProjectList = async () => {
+                const result = await firebaseUtils.getMindMapsList(sessionAuth.username, null);
+                if (result.success) {
+                    showProjectListModal(result.mindmaps);
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            };
+            
+            const showProjectListModal = (mindmaps) => {
+                const content = document.getElementById('projectListContent');
+                content.innerHTML = '';
+                
+                if (mindmaps.length === 0) {
+                    content.innerHTML = '<p class="text-sm text-[var(--text-secondary)] p-4 text-center">No saved mind maps found</p>';
+                } else {
+                    mindmaps.forEach(mindmap => {
+                        const item = document.createElement('div');
+                        item.className = 'p-3 hover:bg-[var(--border)] rounded cursor-pointer flex justify-between items-center mb-2';
+                        
+                        const leftDiv = document.createElement('div');
+                        leftDiv.className = 'flex-1';
+                        leftDiv.onclick = async () => {
+                            const loadRes = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, mindmap.name, mindmap.key);
+                            if (loadRes.success && loadRes.data) {
+                                lastCloudMapName = mindmap.name;
+                                applyProjectData(loadRes.data);
+                                saveState();
+                                requestRedraw();
+                                document.getElementById('projectListModal').classList.add('hidden');
+                            }
+                        };
+                        
+                        const nameDiv = document.createElement('div');
+                        nameDiv.className = 'font-medium';
+                        nameDiv.textContent = mindmap.name;
+                        
+                        const dateDiv = document.createElement('div');
+                        dateDiv.className = 'text-xs text-[var(--text-secondary)]';
+                        dateDiv.textContent = new Date(mindmap.timestamp).toLocaleString();
+                        
+                        leftDiv.appendChild(nameDiv);
+                        leftDiv.appendChild(dateDiv);
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'ml-2 text-red-500 hover:text-red-700 p-2';
+                        deleteBtn.innerHTML = '<svg class="w-4 h-4"><use href="#icon-trash"/></svg>';
+                        deleteBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            if (confirm(`Delete "${mindmap.name}"?`)) {
+                                const result = await firebaseUtils.deleteMindMap(sessionAuth.username, null, mindmap.name, mindmap.key);
+                                if (result.success) {
+                                    showNotification('Success', result.message, 'success');
+                                    const refreshResult = await firebaseUtils.getMindMapsList(sessionAuth.username, null);
+                                    if (refreshResult.success) {
+                                        showProjectListModal(refreshResult.mindmaps);
+                                    }
+                                } else {
+                                    showNotification('Error', result.message, 'error');
+                                }
+                            }
+                        };
+                        
+                        item.appendChild(leftDiv);
+                        item.appendChild(deleteBtn);
+                        content.appendChild(item);
+                    });
+                }
+                
+                document.getElementById('projectListModal').classList.remove('hidden');
+            };
+            
+            const hideCloudModal = () => {
+                document.getElementById('cloudModal').classList.add('hidden');
+                document.getElementById('mindmapNameInput').value = '';
+            };
+            
+            const performCloudSave = async (mapName, override) => {
+                const dataPayload = {
+                    timestamp: new Date().toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+                        showGrid: state.showGrid
+                    },
+                    nodes: state.nodes,
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const btn = document.getElementById('modalConfirm');
+                const originalText = btn.textContent;
+                btn.textContent = 'Saving...';
+                btn.disabled = true;
+
+                const result = await window.firebaseUtils.saveMindMap(sessionAuth.username, null, mapName, dataPayload);
+                
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (result.success) {
+                    lastCloudMapName = mapName;
+                    showNotification('Success', result.message, 'success');
+                    hideCloudModal();
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            };
+            
+            const loadFromCloud = async (username, password, mindmapName, mindmapKey = mindmapName) => {
+                showNotification('Info', 'Loading mind map...', 'info');
+                const result = await firebaseUtils.loadMindMap(username, password, mindmapName, mindmapKey);
+                if (result.success) {
+                    try {
+                        lastCloudMapName = mindmapName;
+                        applyProjectData(result.data);
+                        saveState();
+                        requestRedraw();
+                        showNotification('Success', result.message, 'success');
+                    } catch (error) {
+                        showNotification('Error', 'Failed to load data: Invalid format', 'error');
+                    }
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            };
+
+            const exportAsRXT = () => {
+                const now = new Date();
+                const timestamp = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                
+                const exportData = {
+                    timestamp: now.toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+                        showGrid: state.showGrid
+                    },
+                    nodes: state.nodes,
+                    preview: {
+                        canvasWidth: canvas.clientWidth,
+                        canvasHeight: canvas.clientHeight,
+                        nodeCount: state.nodes.length
+                    },
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mindmap-${timestamp}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const toggleTheme = () => {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                dom.themeIconLight.classList.toggle('hidden', isDark);
+                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                dom.themeToggle.classList.toggle('is-active', isDark);
+                localStorage.setItem('mindmap-theme', isDark ? 'dark' : 'light');
+                requestRedraw();
+            };
+
+            const toggleLock = () => {
+                state.nodesLocked = !state.nodesLocked;
+                dom.lockIconUnlocked.classList.toggle('hidden', state.nodesLocked);
+                dom.lockIconLocked.classList.toggle('hidden', !state.nodesLocked);
+                dom.lockBtn.classList.toggle('is-active', state.nodesLocked);
+                dom.lockBtn.title = state.nodesLocked ? 'Unlock Nodes' : 'Lock Nodes';
+                localStorage.setItem('mindmap-locked', state.nodesLocked ? 'on' : 'off');
+            };
+
+            const toggleGrid = () => {
+                state.showGrid = !state.showGrid;
+                dom.gridToggle.classList.toggle('is-active', state.showGrid);
+                dom.gridToggle.title = state.showGrid ? 'Hide Grid' : 'Show Grid';
+                localStorage.setItem('mindmap-grid', state.showGrid ? 'on' : 'off');
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+            const imageCache = new Map();
+            const MAX_CACHE_SIZE = 50;
+            
+            const loadImage = (url) => {
+                if (imageCache.has(url)) {
+                    const img = imageCache.get(url);
+                    imageCache.delete(url);
+                    imageCache.set(url, img);
+                    return img;
+                }
+                
+                if (imageCache.size >= MAX_CACHE_SIZE) {
+                    const firstKey = imageCache.keys().next().value;
+                    imageCache.delete(firstKey);
+                }
+                
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => requestRedraw();
+                img.src = url;
+                imageCache.set(url, img);
+                return img;
+            };
+            
+            const mermaidCache = new Map();
+            let mermaidIdCounter = 0;
+            const renderMermaidToImage = (code) => {
+                const isDark = document.documentElement.classList.contains('dark');
+                const theme = isDark ? 'dark' : 'default';
+                const cacheKey = `${theme}-${code}`;
+                
+                if (mermaidCache.has(cacheKey)) {
+                    const cacheEntry = mermaidCache.get(cacheKey);
+                    mermaidCache.delete(cacheKey);
+                    mermaidCache.set(cacheKey, cacheEntry);
+                    return cacheEntry;
+                }
+                
+                if (mermaidCache.size >= MAX_CACHE_SIZE) {
+                    const firstKey = mermaidCache.keys().next().value;
+                    mermaidCache.delete(firstKey);
+                }
+                
+                const id = `mermaid-${mermaidIdCounter++}`;
+                mermaidCache.set(cacheKey, { loading: true, img: null });
+                
+                mermaid.initialize({ startOnLoad: false, theme });
+                
+                mermaid.render(id, code).then(result => {
+                    const svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(result.svg);
+                    const img = new Image();
+                    img.onload = () => {
+                        mermaidCache.set(cacheKey, { loading: false, img, width: img.naturalWidth || 300, height: img.naturalHeight || 200 });
+                        requestRedraw();
+                    };
+                    img.src = svgData;
+                }).catch(e => {
+                    console.error("Mermaid render error:", e);
+                    mermaidCache.set(cacheKey, { loading: false, img: null, error: true });
+                });
+                
+                return { loading: true, img: null };
+            };
+
+            const findLinkAtPosition = (text, x, y) => {
+                const parts = getWrappedParts(ctx, text);
+                let currentX = 0;
+                let currentY = FONT_SIZE * 0.8;
+                const lineHeight = FONT_SIZE * 1.4;
+                let currentLineHeight = lineHeight;
+                
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
+                
+                for (const part of parts) {
+                    if (part.text === '\n') {
+                        currentY += currentLineHeight;
+                        currentX = 0;
+                        currentLineHeight = lineHeight;
+                        continue;
+                    }
+                    
+                    if (part.image) {
+                        const maxWidth = 150;
+                        const maxHeight = 100;
+                        currentX += maxWidth + 5;
+                        currentLineHeight = Math.max(currentLineHeight, maxHeight + 10);
+                        continue;
+                    }
+
+                    if (part.table) {
+                        if (currentX === 0 && currentY > y + FONT_SIZE) {
+                            currentY += FONT_SIZE * 0.8;
+                        }
+                        const colWidths = [];
+                        const measureCells = (cells) => {
+                            cells.forEach((cellParts, colIndex) => {
+                                let cellW = 0;
+                                cellParts.forEach(cp => {
+                                    if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
+                                    else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                                    cellW += ctx.measureText(cp.text).width;
+                                });
+                                colWidths[colIndex] = Math.max(colWidths[colIndex] || 0, cellW + 16);
+                            });
+                        };
+                        measureCells(part.headers);
+                        part.rows.forEach(r => measureCells(r));
+                        const tableWidth = colWidths.reduce((sum, w) => sum + w, 0) + (colWidths.length + 1) * 1;
+                        const tableHeight = (1 + part.rows.length) * (lineHeight + 16);
+                        
+                        let startY = currentY - lineHeight * 0.8;
+                        let rowHeight = lineHeight + 16;
+                        
+                        let linkFound = null;
+                        const checkRow = (cells) => {
+                            let startX = currentX;
+                            cells.forEach((cellParts, colIndex) => {
+                                const w = colWidths[colIndex];
+                                let cellW = 0;
+                                ctx.save();
+                                cellParts.forEach(cp => {
+                                    if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
+                                    else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                                    cellW += ctx.measureText(cp.text).width;
+                                });
+                                
+                                let textX = startX + 8;
+                                const align = part.alignments[colIndex] || 'left';
+                                if (align === 'center') textX = startX + (w - cellW) / 2;
+                                else if (align === 'right') textX = startX + w - cellW - 8;
+                                
+                                let textY = startY + rowHeight / 2 + FONT_SIZE * 0.3;
+                                
+                                cellParts.forEach(cp => {
+                                    if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
+                                    else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                                    
+                                    if (cp.link) {
+                                        const textWidth = ctx.measureText(cp.text).width;
+                                        if (x >= textX && x <= textX + textWidth &&
+                                            y >= textY - FONT_SIZE * 0.8 && y <= textY + FONT_SIZE * 0.2) {
+                                            linkFound = cp.link;
+                                        }
+                                    }
+                                    textX += ctx.measureText(cp.text).width;
+                                });
+                                ctx.restore();
+                                startX += w;
+                            });
+                            startY += rowHeight;
+                        };
+                        
+                        checkRow(part.headers);
+                        if (!linkFound) {
+                            for (const r of part.rows) {
+                                checkRow(r);
+                                if (linkFound) break;
+                            }
+                        }
+                        
+                        if (linkFound) return linkFound;
+                        
+                        currentX += tableWidth + FONT_SIZE;
+                        currentLineHeight = Math.max(currentLineHeight, tableHeight + FONT_SIZE);
+                        continue;
+                    }
+                    
+                    if (part.link) {
+                        const textWidth = ctx.measureText(part.text).width;
+                        if (x >= currentX && x <= currentX + textWidth && 
+                            y >= currentY - FONT_SIZE * 0.2 && y <= currentY + FONT_SIZE * 0.8) {
+                            return part.link;
+                        }
+                    }
+                    if (part.heading) {
+                        const headingSizes = [32, 26, 22, 18, 16, 14];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px sans-serif`;
+                        currentLineHeight = Math.max(currentLineHeight, headingSize * 1.5 + 10);
+                    } else {
+                        let fontWeight = part.bold ? '700' : '500';
+                        let fontStyle = part.italic ? 'italic ' : '';
+                        ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
+                    }
+                    
+                    currentX += ctx.measureText(part.text).width;
+                }
+                
+                return null;
+            };
+
+            const renderMarkdownText = (ctx, text, x, y) => {
+                const parts = getWrappedParts(ctx, text);
+                let currentX = x;
+                let currentY = y + FONT_SIZE * 0.8;
+                const lineHeight = FONT_SIZE * 1.4;
+                let currentLineHeight = lineHeight;
+                
+                parts.forEach(part => {
+                    if (part.text === '\n') {
+                        currentY += currentLineHeight;
+                        currentX = x;
+                        currentLineHeight = lineHeight;
+                        return;
+                    }
+                    
+                    if (part.table) {
+                        if (currentX === x && currentY > y + FONT_SIZE) {
+                            currentY += FONT_SIZE * 0.8;
+                        }
+                        ctx.save();
+                        const colWidths = [];
+                        const measureCells = (cells) => {
+                            cells.forEach((cellParts, colIndex) => {
+                                let cellW = 0;
+                                cellParts.forEach(cp => {
+                                    if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
+                                    else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                                    cellW += ctx.measureText(cp.text).width;
+                                });
+                                colWidths[colIndex] = Math.max(colWidths[colIndex] || 0, cellW + 16);
+                            });
+                        };
+                        measureCells(part.headers);
+                        part.rows.forEach(r => measureCells(r));
+                        const tableWidth = colWidths.reduce((sum, w) => sum + w, 0) + (colWidths.length + 1) * 1;
+                        const tableHeight = (1 + part.rows.length) * (lineHeight + 16);
+                        
+                        ctx.strokeStyle = getCssVar('--node-border') || '#d1d5db';
+                        ctx.lineWidth = 1;
+                        
+                        let startY = currentY - lineHeight * 0.8;
+                        ctx.strokeRect(currentX, startY, tableWidth, tableHeight);
+                        
+                        let rowHeight = lineHeight + 16;
+                        
+                        const drawRow = (cells, isHeader) => {
+                            let startX = currentX;
+                            if (isHeader) {
+                                ctx.fillStyle = getCssVar('--bg-secondary') || '#f3f4f6';
+                                ctx.fillRect(startX, startY, tableWidth, rowHeight);
+                            }
+                            
+                            ctx.beginPath();
+                            ctx.moveTo(startX, startY + rowHeight);
+                            ctx.lineTo(startX + tableWidth, startY + rowHeight);
+                            ctx.stroke();
+                            
+                            cells.forEach((cellParts, colIndex) => {
+                                const w = colWidths[colIndex];
+                                if (colIndex < colWidths.length - 1) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(startX + w, startY);
+                                    ctx.lineTo(startX + w, startY + rowHeight);
+                                    ctx.stroke();
+                                }
+                                
+                                let cellW = 0;
+                                ctx.save();
+                                cellParts.forEach(cp => {
+                                    if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
+                                    else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                                    cellW += ctx.measureText(cp.text).width;
+                                });
+                                
+                                let textX = startX + 8;
+                                const align = part.alignments[colIndex] || 'left';
+                                if (align === 'center') textX = startX + (w - cellW) / 2;
+                                else if (align === 'right') textX = startX + w - cellW - 8;
+                                
+                                let textY = startY + rowHeight / 2 + FONT_SIZE * 0.3;
+                                
+                                cellParts.forEach(cp => {
+                                    if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
+                                    else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                                    
+                                    ctx.fillStyle = getCssVar('--node-text');
+                                    if (cp.code) { ctx.font = `500 ${FONT_SIZE}px monospace`; ctx.fillStyle = '#22c55e'; }
+                                    if (cp.link) ctx.fillStyle = getCssVar('--link');
+                                    
+                                    if (isHeader && !cp.code && !cp.link && !cp.heading) {
+                                        ctx.font = `700 ${FONT_SIZE}px sans-serif`;
+                                    }
+                                    
+                                    ctx.fillText(cp.text, textX, textY);
+                                    
+                                    if (cp.strikethrough) {
+                                        const cpW = ctx.measureText(cp.text).width;
+                                        ctx.strokeStyle = '#ef4444';
+                                        ctx.lineWidth = 3;
+                                        ctx.beginPath();
+                                        ctx.moveTo(textX, textY - FONT_SIZE * 0.1);
+                                        ctx.lineTo(textX + cpW, textY - FONT_SIZE * 0.1);
+                                        ctx.stroke();
+                                    }
+                                    
+                                    textX += ctx.measureText(cp.text).width;
+                                });
+                                ctx.restore();
+                                startX += w;
+                            });
+                            startY += rowHeight;
+                        };
+                        
+                        drawRow(part.headers, true);
+                        part.rows.forEach(r => drawRow(r, false));
+                        
+                        ctx.restore();
+                        
+                        currentX += tableWidth + FONT_SIZE;
+                        currentLineHeight = Math.max(currentLineHeight, tableHeight + FONT_SIZE);
+                        return;
+                    }
+
+                    // Handle images
+                    if (part.image) {
+                        const img = loadImage(part.image);
+                        if (img.complete && img.naturalWidth > 0) {
+                            const maxWidth = 150;
+                            const maxHeight = 100;
+                            let { width, height } = img;
+                            
+                            if (width > maxWidth) {
+                                height = (height * maxWidth) / width;
+                                width = maxWidth;
+                            }
+                            if (height > maxHeight) {
+                                width = (width * maxHeight) / height;
+                                height = maxHeight;
+                            }
+                            
+                            ctx.drawImage(img, currentX, currentY, width, height);
+                            currentX += width + 5; // Add small spacing between inline images
+                            currentLineHeight = Math.max(currentLineHeight, height + 10); // Adjust line height for images
+                        }
+                        return;
+                    }
+
+                    // Handle mermaid
+                    if (part.mermaid) {
+                        const m = renderMermaidToImage(part.text);
+                        if (m.img) {
+                            ctx.drawImage(m.img, currentX, currentY, m.width, m.height);
+                            currentX += m.width + 20;
+                            currentLineHeight = Math.max(currentLineHeight, m.height + 20);
+                        } else if (m.loading) {
+                            ctx.fillStyle = '#6b7280';
+                            ctx.fillText("Rendering diagram...", currentX, currentY + FONT_SIZE);
+                            currentX += 150;
+                        } else if (m.error) {
+                            ctx.fillStyle = '#ef4444';
+                            ctx.fillText("Invalid diagram", currentX, currentY + FONT_SIZE);
+                            currentX += 120;
+                        }
+                        return;
+                    }
+                    
+                    ctx.save();
+                    ctx.fillStyle = getCssVar('--node-text');
+                    
+                    // Handle headings
+                    if (part.heading) {
+                        const headingSizes = [32, 26, 22, 18, 16, 14];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px sans-serif`;
+                        ctx.fillStyle = getCssVar('--node-text');
+                        currentLineHeight = Math.max(currentLineHeight, headingSize * 1.5 + 10);
+                    }
+
+                    // Handle regular formatting
+                    else {
+                        let fontWeight = '500';
+                        let fontStyle = '';
+                        
+                        if (part.bold && part.italic) {
+                            fontWeight = '700';
+                            fontStyle = 'italic ';
+                        } else if (part.bold) {
+                            fontWeight = '700';
+                        } else if (part.italic) {
+                            fontStyle = 'italic ';
+                        }
+                        
+                        ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
+                        
+                        if (part.code) {
+                            ctx.font = `500 ${FONT_SIZE}px monospace`;
+                            ctx.fillStyle = '#22c55e';
+                        }
+
+                        if (part.link) {
+                            ctx.fillStyle = getCssVar('--link');
+                        }
+                        if (part.blockquote) {
+                            if (part.alertType === 'NOTE') ctx.fillStyle = '#3b82f6';
+                            else if (part.alertType === 'TIP') ctx.fillStyle = '#22c55e';
+                            else if (part.alertType === 'IMPORTANT') ctx.fillStyle = '#8b5cf6';
+                            else if (part.alertType === 'WARNING') ctx.fillStyle = '#eab308';
+                            else if (part.alertType === 'CAUTION') ctx.fillStyle = '#ef4444';
+                            else ctx.fillStyle = '#ec4899';
+                        }
+                        if (part.hr) {
+                            ctx.fillStyle = '#cccccc';
+                        }
+                    }
+                    
+                    ctx.fillText(part.text, currentX, currentY);
+                    
+                    // Handle strikethrough
+                    if (part.strikethrough) {
+                        const width = ctx.measureText(part.text).width;
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(currentX, currentY - FONT_SIZE * 0.1);
+                        ctx.lineTo(currentX + width, currentY - FONT_SIZE * 0.1);
+                        ctx.stroke();
+                    }
+                    
+                    if (part.link) {
+                        const width = ctx.measureText(part.text).width;
+                        const underlineY = currentY + FONT_SIZE * 0.55;
+                        ctx.strokeStyle = getCssVar('--link');
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(currentX, underlineY);
+                        ctx.lineTo(currentX + width, underlineY);
+                        ctx.stroke();
+                    }
+                    
+                    currentX += ctx.measureText(part.text).width;
+                    ctx.restore();
+                });
+            };
+
+            const measureMarkdownText = (ctx, text) => {
+                const parts = getWrappedParts(ctx, text);
+                let maxWidth = 0;
+                let totalHeight = 0;
+                let currentLineWidth = 0;
+                let currentLineHeight = FONT_SIZE * 1.4;
+                const lineHeight = FONT_SIZE * 1.4;
+                let currentLineMaxY = FONT_SIZE * 1.3;
+                
+                parts.forEach(part => {
+                    if (part.text === '\n') {
+                        maxWidth = Math.max(maxWidth, currentLineWidth);
+                        currentLineWidth = 0;
+                        totalHeight += currentLineHeight;
+                        currentLineHeight = lineHeight;
+                        currentLineMaxY = FONT_SIZE * 1.3;
+                        return;
+                    }
+                    
+                    if (part.table) {
+                        if (currentLineWidth === 0 && totalHeight > 0) {
+                            totalHeight += FONT_SIZE * 0.8;
+                        }
+                        ctx.save();
+                        const colWidths = [];
+                        const measureCells = (cells) => {
+                            cells.forEach((cellParts, colIndex) => {
+                                let cellW = 0;
+                                cellParts.forEach(cp => {
+                                    if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
+                                    else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                                    cellW += ctx.measureText(cp.text).width;
+                                });
+                                colWidths[colIndex] = Math.max(colWidths[colIndex] || 0, cellW + 16); // 16px padding
+                            });
+                        };
+                        measureCells(part.headers);
+                        part.rows.forEach(r => measureCells(r));
+                        ctx.restore();
+                        
+                        const tableWidth = colWidths.reduce((sum, w) => sum + w, 0) + (colWidths.length + 1) * 1; // Borders
+                        const tableHeight = (1 + part.rows.length) * (lineHeight + 16); // Headers + rows
+                        
+                        part.colWidths = colWidths;
+                        part.tableWidth = tableWidth;
+                        part.tableHeight = tableHeight;
+                        
+                        maxWidth = Math.max(maxWidth, currentLineWidth + tableWidth);
+                        currentLineWidth += tableWidth;
+                        currentLineHeight = Math.max(currentLineHeight, tableHeight + FONT_SIZE);
+                        currentLineMaxY = Math.max(currentLineMaxY, tableHeight - FONT_SIZE * 0.32);
+                        return;
+                    }
+
+                    // Handle images
+                    if (part.image) {
+                        currentLineWidth += 155; // 150 + 5 spacing
+                        currentLineHeight = Math.max(currentLineHeight, 110); // Image height + padding
+                        currentLineMaxY = Math.max(currentLineMaxY, FONT_SIZE * 0.8 + 100); // Max image height is 100
+                        return;
+                    }
+
+                    if (part.mermaid) {
+                        const m = renderMermaidToImage(part.text);
+                        const w = m.img ? m.width : 300;
+                        const h = m.img ? m.height : 200;
+                        currentLineWidth += w + 20;
+                        currentLineHeight = Math.max(currentLineHeight, h + 20);
+                        currentLineMaxY = Math.max(currentLineMaxY, FONT_SIZE * 0.8 + h);
+                        return;
+                    }
+                    
+                    ctx.save();
+                    
+                    // Handle headings
+                    if (part.heading) {
+                        const headingSizes = [32, 26, 22, 18, 16, 14];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px sans-serif`;
+                        currentLineHeight = Math.max(currentLineHeight, headingSize * 1.5 + 10);
+                        currentLineMaxY = Math.max(currentLineMaxY, FONT_SIZE * 0.8 + headingSize / 2);
+                    }
+
+                    // Handle regular formatting
+                    else {
+                        let fontWeight = '500';
+                        let fontStyle = '';
+                        
+                        if (part.bold && part.italic) {
+                            fontWeight = '700';
+                            fontStyle = 'italic ';
+                        } else if (part.bold) {
+                            fontWeight = '700';
+                        } else if (part.italic) {
+                            fontStyle = 'italic ';
+                        }
+                        
+                        if (part.code) {
+                            ctx.font = `500 ${FONT_SIZE}px monospace`;
+                        } else {
+                            ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
+                        }
+                    }
+                    
+                    currentLineWidth += ctx.measureText(part.text).width;
+                    ctx.restore();
+                });
+                
+                maxWidth = Math.max(maxWidth, currentLineWidth, 80);
+                totalHeight = totalHeight + currentLineMaxY;
+                
+                return { width: maxWidth, height: totalHeight };
+            };
+
+            const createTextPart = (text, styles = {}) => ({
+                text,
+                bold: false,
+                italic: false,
+                code: false,
+                codeBlock: false,
+                strikethrough: false,
+                blockquote: false,
+                ...styles
+            });
+
+            const appendInlinePart = (parts, text, styles = {}) => {
+                if (!text) return;
+
+                const part = createTextPart(text, styles);
+                const previous = parts[parts.length - 1];
+                const comparableKeys = ['bold', 'italic', 'code', 'codeBlock', 'strikethrough', 'blockquote', 'heading', 'link', 'list'];
+                const canMerge = previous
+                    && !previous.image
+                    && comparableKeys.every(key => previous[key] === part[key]);
+
+                if (canMerge) {
+                    previous.text += text;
+                } else {
+                    parts.push(part);
+                }
+            };
+
+            const parseInlineMarkdown = (text, baseStyles = {}) => {
+                const parts = [];
+                const styles = {
+                    bold: Boolean(baseStyles.bold),
+                    italic: Boolean(baseStyles.italic),
+                    strikethrough: Boolean(baseStyles.strikethrough)
+                };
+                let plainText = '';
+                let index = 0;
+
+                const currentStyles = (extra = {}) => ({ ...baseStyles, ...styles, ...extra });
+                const flushPlainText = () => {
+                    appendInlinePart(parts, plainText, currentStyles());
+                    plainText = '';
+                };
+                const hasClosingMarker = (marker, start) => text.indexOf(marker, start + marker.length) !== -1;
+
+                while (index < text.length) {
+                    if (text[index] === '\\' && index + 1 < text.length) {
+                        plainText += text[index + 1];
+                        index += 2;
+                        continue;
+                    }
+
+                    if (text.startsWith('![', index)) {
+                        const labelEnd = text.indexOf('](', index + 2);
+                        const urlEnd = labelEnd === -1 ? -1 : text.indexOf(')', labelEnd + 2);
+                        if (labelEnd !== -1 && urlEnd !== -1) {
+                            flushPlainText();
+                            parts.push({
+                                ...createTextPart('', currentStyles()),
+                                image: text.slice(labelEnd + 2, urlEnd),
+                                alt: text.slice(index + 2, labelEnd)
+                            });
+                            index = urlEnd + 1;
+                            continue;
+                        }
+                    }
+
+                    if (text[index] === '[') {
+                        const labelEnd = text.indexOf('](', index + 1);
+                        const urlEnd = labelEnd === -1 ? -1 : text.indexOf(')', labelEnd + 2);
+                        if (labelEnd !== -1 && urlEnd !== -1) {
+                            flushPlainText();
+                            appendInlinePart(
+                                parts,
+                                text.slice(index + 1, labelEnd),
+                                currentStyles({ link: text.slice(labelEnd + 2, urlEnd) })
+                            );
+                            index = urlEnd + 1;
+                            continue;
+                        }
+                    }
+
+                    if (text[index] === '`') {
+                        const closingIndex = text.indexOf('`', index + 1);
+                        if (closingIndex !== -1) {
+                            flushPlainText();
+                            appendInlinePart(parts, text.slice(index + 1, closingIndex), currentStyles({ code: true }));
+                            index = closingIndex + 1;
+                            continue;
+                        }
+                    }
+
+                    const markerRules = [
+                        { marker: '***', active: () => styles.bold && styles.italic, toggle: () => { styles.bold = !styles.bold; styles.italic = !styles.italic; } },
+                        { marker: '___', active: () => styles.bold && styles.italic, toggle: () => { styles.bold = !styles.bold; styles.italic = !styles.italic; } },
+                        { marker: '**', active: () => styles.bold, toggle: () => { styles.bold = !styles.bold; } },
+                        { marker: '__', active: () => styles.bold, toggle: () => { styles.bold = !styles.bold; } },
+                        { marker: '~~', active: () => styles.strikethrough, toggle: () => { styles.strikethrough = !styles.strikethrough; } },
+                        { marker: '*', active: () => styles.italic, toggle: () => { styles.italic = !styles.italic; } },
+                        { marker: '_', active: () => styles.italic, toggle: () => { styles.italic = !styles.italic; } }
+                    ];
+
+                    const rule = markerRules.find(({ marker, active }) =>
+                        text.startsWith(marker, index) && (active() || hasClosingMarker(marker, index))
+                    );
+
+                    if (rule) {
+                        flushPlainText();
+                        rule.toggle();
+                        index += rule.marker.length;
+                        continue;
+                    }
+
+                    plainText += text[index];
+                    index++;
+                }
+
+                flushPlainText();
+                return parts.length ? parts : [createTextPart(text, baseStyles)];
+            };
+
+            const parseMarkdown = (text) => {
+                const source = typeof text === 'string' ? text.replace(/\r\n?/g, '\n') : '';
+                const lines = source.split('\n');
+                const parts = [];
+                let inCodeBlock = false;
+                let hasRenderedLine = false;
+
+                const startLine = () => {
+                    if (hasRenderedLine) parts.push(createTextPart('\n'));
+                    hasRenderedLine = true;
+                };
+
+                const isTableSeparator = (str) => /^\|?\s*(?:-+|:-+|-+:|:-+:)(?:\s*\|\s*(?:-+|:-+|-+:|:-+:))+\s*\|?$/.test(str.trim());
+                let inTable = false;
+                let tableHeaders = [];
+                let tableAlignments = [];
+                let tableRows = [];
+
+                const flushTable = () => {
+                    if (inTable && tableHeaders.length > 0) {
+                        parts.push({ table: true, headers: tableHeaders, alignments: tableAlignments, rows: tableRows });
+                    }
+                    inTable = false;
+                    tableHeaders = [];
+                    tableAlignments = [];
+                    tableRows = [];
+                };
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (inCodeBlock) {
+                        if (/^\s*```\s*$/.test(line)) {
+                            inCodeBlock = false;
+                            continue;
+                        }
+
+                        startLine();
+                        parts.push(createTextPart(line, { code: true, codeBlock: true }));
+                        continue;
+                    }
+
+                    if (/^\s*```mermaid\s*$/.test(line)) {
+                        flushTable();
+                        let mermaidCode = '';
+                        i++;
+                        while(i < lines.length && !/^\s*```\s*$/.test(lines[i])) {
+                            mermaidCode += lines[i] + '\n';
+                            i++;
+                        }
+                        startLine();
+                        parts.push({ mermaid: true, text: mermaidCode.trim() });
+                        continue;
+                    }
+
+                    if (/^\s*```[^`]*$/.test(line)) {
+                        inCodeBlock = true;
+                        flushTable();
+                        continue;
+                    }
+
+                    if (!inTable && line.includes('|') && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
+                        startLine();
+                        inTable = true;
+                        const parseCells = (row) => row.split('|').map(s => s.trim()).filter((s, idx, arr) => !(s === '' && (idx === 0 || idx === arr.length - 1))).map(s => parseInlineMarkdown(s));
+                        tableHeaders = parseCells(line);
+                        
+                        const seps = lines[i + 1].split('|').map(s => s.trim()).filter((s, idx, arr) => !(s === '' && (idx === 0 || idx === arr.length - 1)));
+                        tableAlignments = seps.map(s => {
+                            if (s.startsWith(':') && s.endsWith(':')) return 'center';
+                            if (s.endsWith(':')) return 'right';
+                            return 'left';
+                        });
+                        
+                        i++; // skip separator
+                        continue;
+                    }
+
+                    if (inTable) {
+                        if (!line.includes('|')) {
+                            flushTable();
+                        } else {
+                            const parseCells = (row) => row.split('|').map(s => s.trim()).filter((s, idx, arr) => !(s === '' && (idx === 0 || idx === arr.length - 1))).map(s => parseInlineMarkdown(s));
+                            tableRows.push(parseCells(line));
+                            continue;
+                        }
+                    }
+
+                    startLine();
+
+                    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+                    if (headingMatch) {
+                        parts.push(...parseInlineMarkdown(headingMatch[2], { heading: headingMatch[1].length }));
+                        continue;
+                    }
+
+                    if (/^\s*(?:---+|\*\*\*+|___+)\s*$/.test(line)) {
+                        parts.push(createTextPart('───────────────', { hr: true }));
+                        continue;
+                    }
+
+                    const blockquoteMatch = line.match(/^(\s*)(>+)\s?(.*)$/);
+                    if (blockquoteMatch) {
+                        const level = blockquoteMatch[2].length;
+                        const quoteText = blockquoteMatch[3];
+                        const alertMatch = quoteText.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/i);
+                        
+                        if (alertMatch) {
+                            const alertType = alertMatch[1].toUpperCase();
+                            const icon = { NOTE: 'ℹ️', TIP: '💡', IMPORTANT: '🔥', WARNING: '⚠️', CAUTION: '🛑' }[alertType];
+                            appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}`, { blockquote: level, alertType });
+                            parts.push(...parseInlineMarkdown(`${icon} ${alertType}`, { blockquote: level, alertType, bold: true }));
+                        } else {
+                            const isAlertText = parts.length > 0 && parts[parts.length - 1].alertType;
+                            if (isAlertText) {
+                                appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}  `, { blockquote: level, alertType: parts[parts.length - 1].alertType });
+                                parts.push(...parseInlineMarkdown(quoteText, { blockquote: level, alertType: parts[parts.length - 1].alertType }));
+                            } else {
+                                appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}▎ `, { blockquote: level });
+                                parts.push(...parseInlineMarkdown(quoteText, { blockquote: level }));
+                            }
+                        }
+                        continue;
+                    }
+
+                    const unorderedListMatch = line.match(/^(\s*)[-*+]\s+(.*)$/);
+                    if (unorderedListMatch) {
+                        const indentStr = unorderedListMatch[1];
+                        const indentLevel = Math.floor(indentStr.length / 2);
+                        const bullets = ['•', '○', '■', '□'];
+                        const bullet = bullets[indentLevel % bullets.length];
+                        
+                        const text = unorderedListMatch[2];
+                        const taskMatch = text.match(/^\[([ xX])\]\s+(.*)$/);
+                        if (taskMatch) {
+                            const checked = taskMatch[1].toLowerCase() === 'x';
+                            appendInlinePart(parts, `${indentStr}${checked ? '☑' : '☐'} `, { list: true, taskList: true, checked });
+                            parts.push(...parseInlineMarkdown(taskMatch[2], { list: true }));
+                        } else {
+                            appendInlinePart(parts, `${indentStr}${bullet} `, { list: true });
+                            parts.push(...parseInlineMarkdown(text, { list: true }));
+                        }
+                        continue;
+                    }
+
+                    const orderedListMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+                    if (orderedListMatch) {
+                        appendInlinePart(parts, `${orderedListMatch[1]}${orderedListMatch[2]}. `, { list: true });
+                        parts.push(...parseInlineMarkdown(orderedListMatch[3], { list: true }));
+                        continue;
+                    }
+
+                    parts.push(...parseInlineMarkdown(line));
+                }
+                flushTable();
+
+                return parts.length ? parts : [createTextPart('')];
+            };
+
+            const getWrappedParts = (ctx, text, maxWidth = 350) => {
+                const parts = parseMarkdown(text);
+                const wrappedParts = [];
+                let currentLineWidth = 0;
+                
+                parts.forEach(part => {
+                    if (part.text === '\n') {
+                        currentLineWidth = 0;
+                        wrappedParts.push(part);
+                        return;
+                    }
+                    if (part.table || part.mermaid || part.image || part.heading) {
+                        wrappedParts.push(part);
+                        if (part.image) currentLineWidth += 155;
+                        else currentLineWidth = 0;
+                        return;
+                    }
+                    
+                    let fontWeight = '500';
+                    let fontStyle = '';
+                    if (part.bold && part.italic) { fontWeight = '700'; fontStyle = 'italic '; }
+                    else if (part.bold) fontWeight = '700';
+                    else if (part.italic) fontStyle = 'italic ';
+                    
+                    if (part.code) ctx.font = `500 ${FONT_SIZE}px monospace`;
+                    else ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
+                    
+                    const words = part.text.split(/(\s+)/);
+                    let newText = '';
+                    
+                    for (let word of words) {
+                        const wordWidth = ctx.measureText(word).width;
+                        if (currentLineWidth + wordWidth > maxWidth && currentLineWidth > 0 && !word.match(/^\s+$/)) {
+                            if (newText) {
+                                wrappedParts.push({ ...part, text: newText });
+                                newText = '';
+                            }
+                            wrappedParts.push(createTextPart('\n'));
+                            currentLineWidth = 0;
+                            if (word.match(/^\s+$/)) continue; 
+                        }
+                        newText += word;
+                        currentLineWidth += wordWidth;
+                    }
+                    if (newText) {
+                        wrappedParts.push({ ...part, text: newText });
+                    }
+                });
+                return wrappedParts;
+            };
+
+            
+            const parseInlineMarkdownLegacy = (text) => {
+                const parts = [];
+                let current = '';
+                let i = 0;
+                
+                while (i < text.length) {
+                    // Handle links [text](url)
+                    const linkMatch = text.substr(i).match(/^\[([^\]]+)\]\(([^)]+)\)/);
+                    if (linkMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        current = '';
+                        parts.push({ text: linkMatch[1], bold: false, italic: false, code: false, strikethrough: false, blockquote: false, link: linkMatch[2] });
+                        i += linkMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle images ![alt](url)
+                    const imageMatch = text.substr(i).match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+                    if (imageMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        current = '';
+                        parts.push({ text: '', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, image: imageMatch[2], alt: imageMatch[1] });
+                        i += imageMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle bold and italic ***text***
+                    if (text.substr(i, 3) === '***') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ***
+                        while (j < text.length - 2 && text.substr(j, 3) !== '***') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '***' && tempCurrent) {
+                            // Found proper closing ***
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing *** found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle bold **text**
+                    else if (text.substr(i, 2) === '**') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing **
+                        while (j < text.length - 1 && text.substr(j, 2) !== '**') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '**' && tempCurrent) {
+                            // Found proper closing **
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: false, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ** found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle italic *text* or _text_
+                    else if ((text[i] === '*' || text[i] === '_') && (i === 0 || text[i-1] !== text[i]) && (i === text.length - 1 || text[i+1] !== text[i])) {
+                        const marker = text[i];
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 1;
+                        
+                        // Look for closing marker
+                        while (j < text.length && text[j] !== marker) {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length && text[j] === marker && tempCurrent) {
+                            // Found proper closing marker
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 1;
+                        } else {
+                            // No closing marker found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle single backtick inline code `text`
+                    else if (text[i] === '`' && text.substr(i, 3) !== '```') {
+                        let tempCurrent = '';
+                        let j = i + 1;
+                        
+                        // Look for closing `
+                        while (j < text.length && text[j] !== '`') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length && text[j] === '`' && tempCurrent) {
+                            // Found proper closing `
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 1;
+                        } else {
+                            // No closing ` found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle triple backtick inline code ```text```
+                    else if (text.substr(i, 3) === '```') {
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ```
+                        while (j < text.length - 2 && text.substr(j, 3) !== '```') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '```' && tempCurrent) {
+                            // Found proper closing ```
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing ``` found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+
+                    // Handle strikethrough ~~text~~
+                    else if (text.substr(i, 2) === '~~') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing ~~
+                        while (j < text.length - 1 && text.substr(j, 2) !== '~~') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '~~' && tempCurrent) {
+                            // Found proper closing ~~
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: false, strikethrough: true, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ~~ found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    } else {
+                        current += text[i];
+                        i++;
+                    }
+                }
+                
+                if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
+            };
+
+            // --- Actions ---
+            const zoom = (factor, pivot = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 }) => {
+                const newZoom = Math.max(0.1, Math.min(15, state.zoom * factor));
+                const worldPos = screenToWorld(pivot.x, pivot.y);
+                
+                state.pan.x = pivot.x - worldPos.x * newZoom;
+                state.pan.y = pivot.y - worldPos.y * newZoom;
+                state.zoom = newZoom;
+                
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+            const fitView = () => {
+                if (state.nodes.length === 0) return;
+
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                state.nodes.forEach(n => {
+                    minX = Math.min(minX, n.x);
+                    minY = Math.min(minY, n.y);
+                    maxX = Math.max(maxX, n.x + n.width);
+                    maxY = Math.max(maxY, n.y + n.height);
+                });
+
+                const padding = 50;
+                const contentWidth = maxX - minX;
+                const contentHeight = maxY - minY;
+                
+                const scaleX = (canvas.clientWidth - padding * 2) / contentWidth;
+                const scaleY = (canvas.clientHeight - padding * 2) / contentHeight;
+                state.zoom = Math.min(scaleX, scaleY, 1);
+
+                const centerX = minX + contentWidth / 2;
+                const centerY = minY + contentHeight / 2;
+
+                state.pan.x = canvas.clientWidth / 2 - centerX * state.zoom;
+                state.pan.y = canvas.clientHeight / 2 - centerY * state.zoom;
+                
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+            // --- Helpers ---
+            const getMousePos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            };
+            const screenToWorld = (x, y) => ({ x: (x - state.pan.x) / state.zoom, y: (y - state.pan.y) / state.zoom });
+            const worldToScreen = (x, y) => ({ x: x * state.zoom + state.pan.x, y: y * state.zoom + state.pan.y });
+            const findNodeById = (id) => state.nodes.find(n => n.id === id);
+            const findNodeAt = (x, y) => {
+                const worldPos = screenToWorld(x, y);
+                return state.nodes.slice().reverse().find(n => 
+                    worldPos.x >= n.x && worldPos.x <= n.x + n.width &&
+                    worldPos.y >= n.y && worldPos.y <= n.y + n.height
+                )?.id || null;
+            };
+            const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            
+            const fillRoundedRect = (c, x, y, w, h, r) => {
+                c.beginPath(); c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r); c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath(); c.fill();
+            };
+            const strokeRoundedRect = (c, x, y, w, h, r) => {
+                c.beginPath(); c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r); c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath(); c.stroke();
+            };
+
+            // --- Initialization ---
+            const init = () => {
+                setupEventListeners();
+                resizeCanvas();
+                
+                // Load saved data or load sample JSON on first visit
+                const hasLoadedData = loadFromLocalStorage();
+                if (!hasLoadedData) {
+                    // First time visit - load sample JSON
+                    fetch('sample-mindmap.json')
+                        .then(r => r.json())
+                        .then(data => {
+                            applyProjectData(data);
+                            const savedGrid = localStorage.getItem('mindmap-grid');
+                            if (savedGrid) state.showGrid = savedGrid === 'on';
+                            syncToggleControls();
+                            saveState();
+                            fitView();
+                            requestRedraw();
+                        })
+                        .catch(() => {
+                            // Fallback if sample file not found
+                            const cX = canvas.clientWidth / 2;
+                            const cY = canvas.clientHeight / 2;
+                            createNode(screenToWorld(cX, cY).x - 50, screenToWorld(cX, cY).y - 25, 'Welcome!');
+                            const savedGrid = localStorage.getItem('mindmap-grid');
+                            if (savedGrid) state.showGrid = savedGrid === 'on';
+                            syncToggleControls();
+                            saveState();
+                            fitView();
+                            requestRedraw();
+                        });
+                } else {
+                    // Load theme from localStorage
+                    const savedTheme = localStorage.getItem('mindmap-theme');
+                    if (savedTheme === 'dark') {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                    const isDark = document.documentElement.classList.contains('dark');
+                    dom.themeToggle.classList.toggle('is-active', isDark);
+                    
+                    const savedGrid = localStorage.getItem('mindmap-grid');
+                    if (savedGrid) state.showGrid = savedGrid === 'on';
+                    // Update UI to reflect loaded state
+                    dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                    syncToggleControls();
+                    saveState();
+                    requestRedraw();
+                }
+                
+                const savedLocked = localStorage.getItem('mindmap-locked');
+                if (savedLocked === 'on') {
+                    state.nodesLocked = true;
+                } else {
+                    state.nodesLocked = false;
+                }
+                syncToggleControls();
+            };
+
+            init();
+        });
+    </script>
+</body>
+</html>
