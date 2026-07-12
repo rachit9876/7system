@@ -506,6 +506,11 @@
                 }
 
                 ctx.restore();
+                
+                // Keep the text editor overlay glued to the node when panning or zooming
+                if (state.editingNodeId) {
+                    updateEditorSize();
+                }
             };
 
             const drawNodes = () => {
