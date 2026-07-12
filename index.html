@@ -1098,6 +1098,11 @@
 
             const onKeyDown = (e) => {
                 if (state.editingNodeId) return;
+                
+                // Ignore hotkeys when typing in an input, textarea, or contenteditable element
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                    return;
+                }
 
                 if (e.key === 'Escape' && state.connecting) {
                     state.connecting = false;
@@ -1108,7 +1113,7 @@
                     e.preventDefault();
                     dom.fileInput.click();
                 }
-                if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (e.key === 'Delete') {
                     if (state.selectedNodeId) {
                         deleteNode(state.selectedNodeId);
                         state.selectedNodeId = null;
