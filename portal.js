@@ -106,6 +106,10 @@ const bulkImportInput = document.getElementById('bulkImportInput');
 
 const loadMindMaps = async () => {
     mindmapsGrid.innerHTML = '<p class="text-[var(--text-secondary)]">Loading mind maps...</p>';
+    if (!window.firebaseUtils) {
+        mindmapsGrid.innerHTML = `<p class="text-[var(--danger)]">Service unavailable.</p>`;
+        return;
+    }
     const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
     
     if (result.success) {
@@ -202,6 +206,13 @@ const renderMindMaps = () => {
             toggleBtn.setAttribute('aria-checked', makePublic);
             toggleBtn.classList.add('disabled', 'opacity-50', 'pointer-events-none');
             
+            if (!window.firebaseUtils) {
+                showNotification('Error', 'Service unavailable', 'error');
+                toggleBtn.classList.remove('disabled', 'opacity-50', 'pointer-events-none');
+                toggleBtn.classList.toggle('active');
+                toggleBtn.setAttribute('aria-checked', !makePublic);
+                return;
+            }
             const res = await window.firebaseUtils.togglePublicMindMap(sessionAuth.username, null, map.name, makePublic);
             
             toggleBtn.classList.remove('disabled', 'opacity-50', 'pointer-events-none');
@@ -257,6 +268,10 @@ selectAllCheckbox.addEventListener('change', (e) => {
 const singleDelete = async (name) => {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
     
+    if (!window.firebaseUtils) {
+        showNotification('Error', 'Service unavailable', 'error');
+        return;
+    }
     const result = await window.firebaseUtils.deleteMindMap(sessionAuth.username, null, name);
     if (result.success) {
         showNotification('Success', `Deleted ${name}`);
@@ -287,6 +302,12 @@ bulkDeleteBtn.addEventListener('click', async () => {
     bulkDeleteBtn.disabled = true;
     bulkDeleteBtn.textContent = 'Deleting...';
     
+    if (!window.firebaseUtils) {
+        showNotification('Error', 'Service unavailable', 'error');
+        bulkDeleteBtn.disabled = false;
+        bulkDeleteBtn.textContent = 'Delete Selected';
+        return;
+    }
     const results = await Promise.allSettled(
         [...selectedMapNames].map(name => 
             window.firebaseUtils.deleteMindMap(sessionAuth.username, null, name)
@@ -306,6 +327,12 @@ bulkExportBtn.addEventListener('click', async () => {
     bulkExportBtn.disabled = true;
     bulkExportBtn.textContent = 'Exporting...';
     
+    if (!window.firebaseUtils) {
+        showNotification('Error', 'Service unavailable', 'error');
+        bulkExportBtn.disabled = false;
+        bulkExportBtn.textContent = 'Export Selected';
+        return;
+    }
     try {
         const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
         if (result.success && result.mindmaps) {
@@ -345,6 +372,10 @@ bulkImportInput.addEventListener('change', async (e) => {
             const data = JSON.parse(text);
             const name = file.name.replace(/\.json$/i, '');
             
+            if (!window.firebaseUtils) {
+                showNotification('Error', 'Service unavailable', 'error');
+                return;
+            }
             const res = await window.firebaseUtils.saveMindMap(sessionAuth.username, null, name, data);
             if (res.success) successCount++;
             else failCount++;
@@ -386,6 +417,11 @@ renameConfirm.addEventListener('click', async () => {
     }
     
     renameConfirm.disabled = true;
+    if (!window.firebaseUtils) {
+        showNotification('Error', 'Service unavailable', 'error');
+        renameConfirm.disabled = false;
+        return;
+    }
     const res = await window.firebaseUtils.renameMindMap(sessionAuth.username, null, renamingMapName, newName);
     renameConfirm.disabled = false;
     
@@ -427,6 +463,11 @@ document.getElementById('changePasswordBtn').addEventListener('click', async () 
     
     const btn = document.getElementById('changePasswordBtn');
     btn.disabled = true;
+    if (!window.firebaseUtils) {
+        showNotification('Error', 'Service unavailable', 'error');
+        btn.disabled = false;
+        return;
+    }
     const res = await window.firebaseUtils.changePassword(sessionAuth.username, null, oldPassword, newPassword);
     btn.disabled = false;
     
@@ -463,6 +504,11 @@ deleteAccountConfirm.addEventListener('click', async () => {
     }
     
     deleteAccountConfirm.disabled = true;
+    if (!window.firebaseUtils) {
+        showNotification('Error', 'Service unavailable', 'error');
+        deleteAccountConfirm.disabled = false;
+        return;
+    }
     const res = await window.firebaseUtils.deleteAccount(sessionAuth.username, pwd);
     deleteAccountConfirm.disabled = false;
     

@@ -199,6 +199,13 @@
 
         let sessionAuth = null;
         
+        const escapeHtml = (text) => {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        };
+        
         const loginOverlay = document.getElementById('loginOverlay');
         const feedContainer = document.getElementById('feedContainer');
         const logoutBtn = document.getElementById('logoutBtn');
@@ -236,8 +243,10 @@
         };
         
         // Wait for Firebase to initialize
-        setTimeout(() => {
+        let authRetries = 0;
+        const waitForAuth = setInterval(() => {
             if (window.firebaseAuth) {
+                clearInterval(waitForAuth);
                 const urlParams = new URLSearchParams(window.location.search);
                 const isPublicView = urlParams.get('u') && urlParams.get('m');
 
@@ -262,8 +271,10 @@
                         }
                     }
                 });
+            } else if (++authRetries > 200) {
+                clearInterval(waitForAuth);
             }
-        }, 100);
+        }, 50);
 
         document.getElementById('loginSubmitBtn').addEventListener('click', async () => {
             const u = document.getElementById('usernameInput').value;
@@ -274,6 +285,14 @@
             btn.textContent = 'Authenticating...';
             btn.disabled = true;
 
+            if (!window.firebaseUtils) {
+                const err = document.getElementById('loginError');
+                err.textContent = 'Service unavailable';
+                err.classList.remove('hidden');
+                btn.textContent = 'Login / Register';
+                btn.disabled = false;
+                return;
+            }
             const result = await window.firebaseUtils.loginRegister(u, p);
             
             btn.textContent = 'Login / Register';
@@ -336,6 +355,10 @@
         const loadFeed = async () => {
             feedLoader.style.display = 'block';
             
+            if (!window.firebaseUtils) {
+                feedContainer.innerHTML = `<p class="text-center mt-10 text-red-500">Service unavailable.</p>`;
+                return;
+            }
             const listResult = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
             
             if (!listResult.success) {
@@ -390,6 +413,11 @@
                     if (!isLoaded && !isLoading) {
                         isLoading = true;
                         body.innerHTML = '<div class="loader !my-4 w-6 h-6 border-2"></div>';
+                        if (!window.firebaseUtils) {
+                            body.innerHTML = '<p class="text-red-500 text-center">Service unavailable.</p>';
+                            isLoading = false;
+                            return;
+                        }
                         const mapResult = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, mapInfo.name, mapInfo.key);
                         if (mapResult.success && mapResult.data && mapResult.data.nodes) {
                             renderNodes(body, mapResult.data.nodes);
@@ -449,6 +477,10 @@
                 portalBtn.classList.add('hidden');
                 
                 feedLoader.style.display = 'block';
+                if (!window.firebaseUtils) {
+                    feedContainer.innerHTML = `<p class="text-center mt-10 text-red-500">Service unavailable.</p>`;
+                    return;
+                }
                 const mapResult = await window.firebaseUtils.loadPublicMindMap(pubUsername, pubMapName);
                 feedLoader.style.display = 'none';
 

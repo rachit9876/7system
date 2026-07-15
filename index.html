@@ -321,18 +321,23 @@
         } catch(e) {}
 
         // Wait for Firebase to initialize
-        setTimeout(() => {
+        let authRetries = 0;
+        const waitForAuth = setInterval(() => {
             if (window.firebaseAuth) {
+                clearInterval(waitForAuth);
                 onAuthStateChanged(window.firebaseAuth, (user) => {
                     if (user) {
                         sessionAuth = { username: user.email };
                         const mapToLoad = sessionStorage.getItem('7systemLoadMap');
                         if (mapToLoad) {
                             sessionStorage.removeItem('7systemLoadMap');
+                            let mapRetries = 0;
                             const checkDOM = setInterval(() => {
                                 if (window.openCloudMap) {
                                     clearInterval(checkDOM);
                                     window.openCloudMap(mapToLoad);
+                                } else if (++mapRetries > 200) {
+                                    clearInterval(checkDOM);
                                 }
                             }, 50);
                         }
@@ -341,8 +346,10 @@
                     }
                     updateAuthUI();
                 });
+            } else if (++authRetries > 200) {
+                clearInterval(waitForAuth);
             }
-        }, 100);
+        }, 50);
 
         let notificationTimer = null;
 
@@ -367,7 +374,7 @@
             }
             
             // Show notification
-            notification.classList.remove('translate-y-20');
+            notification.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
             notification.classList.add('translate-y-0');
             
             if (notificationTimer) {
@@ -377,7 +384,7 @@
             // Hide after 3 seconds
             notificationTimer = setTimeout(() => {
                 notification.classList.remove('translate-y-0');
-                notification.classList.add('translate-y-20');
+                notification.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
                 notificationTimer = null;
             }, 3000);
         }
@@ -407,6 +414,7 @@
                 connecting: false,
                 nodesLocked: false,
                 showGrid: true,
+                cancelingEdit: false,
             };
 
             const dom = {
@@ -687,6 +695,7 @@
                 hideNodeEditor();
                 updateHistoryButtons();
                 requestRedraw();
+                saveToLocalStorage();
             };
 
             const updateHistoryButtons = () => {
@@ -793,6 +802,7 @@
             };
 
             const finishEditingNode = () => {
+                if (state.cancelingEdit) return;
                 if (!state.editingNodeId) return;
                 const node = findNodeById(state.editingNodeId);
                 if (node) {
@@ -813,6 +823,7 @@
             };
 
             const cancelEditingNode = () => {
+                state.cancelingEdit = true;
                 if (state.editingNodeId) {
                     const node = findNodeById(state.editingNodeId);
                     if (node && state.editingOriginalText !== null) {
@@ -822,6 +833,7 @@
                 }
                 hideNodeEditor();
                 requestRedraw();
+                setTimeout(() => { state.cancelingEdit = false; }, 50);
             };
 
             // --- Event Handlers ---
@@ -934,6 +946,7 @@
                     }
                     sessionAuth = null;
                     updateAuthUI();
+                    localStorage.removeItem('7systemSessionAuth');
                     showNotification('Success', 'Logged out successfully', 'success');
                 });
 
@@ -1171,6 +1184,7 @@
                     menuConnect.style.display = 'block';
                     menuDeleteNode.style.display = 'block';
                     const node = findNodeById(nodeId);
+                    if (!node) return;
                     menuDisconnect.style.display = node.parentId ? 'block' : 'none';
 
                     menuAddChild.onclick = () => {
@@ -1245,6 +1259,10 @@
                     return;
                 }
                 
+                if (!window.firebaseUtils) {
+                    showNotification('Error', 'Service unavailable', 'error');
+                    return;
+                }
                 const result = await window.firebaseUtils.loginRegister(username, password);
                 if (result.success) {
                     sessionAuth = { username };
@@ -1273,11 +1291,15 @@
                 listContainer.classList.add('hidden');
                 
                 // Fetch list
+                if (!window.firebaseUtils) {
+                    showNotification('Error', 'Service unavailable', 'error');
+                    return;
+                }
                 const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
                 const existingMindMaps = result.success ? result.mindmaps : [];
                 
                 if (existingMindMaps.length > 0) {
-                    listContainer.classList.add('hidden');
+                    listContainer.classList.remove('hidden');
                     
                     const renderList = (filterText) => {
                         listEl.innerHTML = '';
@@ -1336,6 +1358,10 @@
             };
             
             const loadProjectList = async () => {
+                if (!window.firebaseUtils) {
+                    showNotification('Error', 'Service unavailable', 'error');
+                    return;
+                }
                 const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
                 if (result.success) {
                     showProjectListModal(result.mindmaps);
@@ -1434,6 +1460,12 @@
                 btn.textContent = 'Saving...';
                 btn.disabled = true;
 
+                if (!window.firebaseUtils) {
+                    showNotification('Error', 'Service unavailable', 'error');
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    return;
+                }
                 const result = await window.firebaseUtils.saveMindMap(sessionAuth.username, null, mapName, dataPayload);
                 
                 btn.textContent = originalText;
@@ -1449,6 +1481,10 @@
             };
             
             const loadFromCloud = async (username, password, mindmapName, mindmapKey = mindmapName) => {
+                if (!window.firebaseUtils) {
+                    showNotification('Error', 'Service unavailable', 'error');
+                    return;
+                }
                 showNotification('Info', 'Loading mind map...', 'info');
                 const result = await window.firebaseUtils.loadMindMap(username, password, mindmapName, mindmapKey);
                 if (result.success) {
@@ -2412,185 +2448,6 @@
                 return wrappedParts;
             };
 
-            
-            const parseInlineMarkdownLegacy = (text) => {
-                const parts = [];
-                let current = '';
-                let i = 0;
-                
-                while (i < text.length) {
-                    // Handle links [text](url)
-                    const linkMatch = text.substr(i).match(/^\[([^\]]+)\]\(([^)]+)\)/);
-                    if (linkMatch) {
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                        current = '';
-                        parts.push({ text: linkMatch[1], bold: false, italic: false, code: false, strikethrough: false, blockquote: false, link: linkMatch[2] });
-                        i += linkMatch[0].length;
-                        continue;
-                    }
-                    
-                    // Handle images ![alt](url)
-                    const imageMatch = text.substr(i).match(/^!\[([^\]]*)\]\(([^)]+)\)/);
-                    if (imageMatch) {
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                        current = '';
-                        parts.push({ text: '', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, image: imageMatch[2], alt: imageMatch[1] });
-                        i += imageMatch[0].length;
-                        continue;
-                    }
-                    
-                    // Handle bold and italic ***text***
-                    if (text.substr(i, 3) === '***') {
-                        let foundClosing = false;
-                        let tempCurrent = '';
-                        let j = i + 3;
-                        
-                        // Look for closing ***
-                        while (j < text.length - 2 && text.substr(j, 3) !== '***') {
-                            tempCurrent += text[j];
-                            j++;
-                        }
-                        
-                        if (j < text.length - 2 && text.substr(j, 3) === '***' && tempCurrent) {
-                            // Found proper closing ***
-                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                            parts.push({ text: tempCurrent, bold: true, italic: true, code: false, strikethrough: false, blockquote: false });
-                            current = '';
-                            i = j + 3;
-                        } else {
-                            // No closing *** found, treat as regular text
-                            current += text[i];
-                            i++;
-                        }
-                    }
-                    // Handle bold **text**
-                    else if (text.substr(i, 2) === '**') {
-                        let foundClosing = false;
-                        let tempCurrent = '';
-                        let j = i + 2;
-                        
-                        // Look for closing **
-                        while (j < text.length - 1 && text.substr(j, 2) !== '**') {
-                            tempCurrent += text[j];
-                            j++;
-                        }
-                        
-                        if (j < text.length - 1 && text.substr(j, 2) === '**' && tempCurrent) {
-                            // Found proper closing **
-                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                            parts.push({ text: tempCurrent, bold: true, italic: false, code: false, strikethrough: false, blockquote: false });
-                            current = '';
-                            i = j + 2;
-                        } else {
-                            // No closing ** found, treat as regular text
-                            current += text[i];
-                            i++;
-                        }
-                    }
-                    // Handle italic *text* or _text_
-                    else if ((text[i] === '*' || text[i] === '_') && (i === 0 || text[i-1] !== text[i]) && (i === text.length - 1 || text[i+1] !== text[i])) {
-                        const marker = text[i];
-                        let foundClosing = false;
-                        let tempCurrent = '';
-                        let j = i + 1;
-                        
-                        // Look for closing marker
-                        while (j < text.length && text[j] !== marker) {
-                            tempCurrent += text[j];
-                            j++;
-                        }
-                        
-                        if (j < text.length && text[j] === marker && tempCurrent) {
-                            // Found proper closing marker
-                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                            parts.push({ text: tempCurrent, bold: false, italic: true, code: false, strikethrough: false, blockquote: false });
-                            current = '';
-                            i = j + 1;
-                        } else {
-                            // No closing marker found, treat as regular text
-                            current += text[i];
-                            i++;
-                        }
-                    }
-                    // Handle single backtick inline code `text`
-                    else if (text[i] === '`' && text.substr(i, 3) !== '```') {
-                        let tempCurrent = '';
-                        let j = i + 1;
-                        
-                        // Look for closing `
-                        while (j < text.length && text[j] !== '`') {
-                            tempCurrent += text[j];
-                            j++;
-                        }
-                        
-                        if (j < text.length && text[j] === '`' && tempCurrent) {
-                            // Found proper closing `
-                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                            parts.push({ text: tempCurrent, bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
-                            current = '';
-                            i = j + 1;
-                        } else {
-                            // No closing ` found, treat as regular text
-                            current += text[i];
-                            i++;
-                        }
-                    }
-                    // Handle triple backtick inline code ```text```
-                    else if (text.substr(i, 3) === '```') {
-                        let tempCurrent = '';
-                        let j = i + 3;
-                        
-                        // Look for closing ```
-                        while (j < text.length - 2 && text.substr(j, 3) !== '```') {
-                            tempCurrent += text[j];
-                            j++;
-                        }
-                        
-                        if (j < text.length - 2 && text.substr(j, 3) === '```' && tempCurrent) {
-                            // Found proper closing ```
-                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                            parts.push({ text: tempCurrent, bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
-                            current = '';
-                            i = j + 3;
-                        } else {
-                            // No closing ``` found, treat as regular text
-                            current += text[i];
-                            i++;
-                        }
-                    }
-
-                    // Handle strikethrough ~~text~~
-                    else if (text.substr(i, 2) === '~~') {
-                        let foundClosing = false;
-                        let tempCurrent = '';
-                        let j = i + 2;
-                        
-                        // Look for closing ~~
-                        while (j < text.length - 1 && text.substr(j, 2) !== '~~') {
-                            tempCurrent += text[j];
-                            j++;
-                        }
-                        
-                        if (j < text.length - 1 && text.substr(j, 2) === '~~' && tempCurrent) {
-                            // Found proper closing ~~
-                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                            parts.push({ text: tempCurrent, bold: false, italic: false, code: false, strikethrough: true, blockquote: false });
-                            current = '';
-                            i = j + 2;
-                        } else {
-                            // No closing ~~ found, treat as regular text
-                            current += text[i];
-                            i++;
-                        }
-                    } else {
-                        current += text[i];
-                        i++;
-                    }
-                }
-                
-                if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
-                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
-            };
 
             // --- Actions ---
             const zoom = (factor, pivot = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 }) => {
