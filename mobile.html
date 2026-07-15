@@ -238,9 +238,14 @@
         // Wait for Firebase to initialize
         setTimeout(() => {
             if (window.firebaseAuth) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const isPublicView = urlParams.get('u') && urlParams.get('m');
+
                 onAuthStateChanged(window.firebaseAuth, (user) => {
                     if (user) {
                         sessionAuth = { username: user.email };
+                        // Don't interfere with public viewer mode
+                        if (isPublicView) return;
                         loginOverlay.classList.add('hidden');
                         feedContainer.classList.remove('hidden');
                         logoutBtn.classList.remove('hidden');
@@ -248,8 +253,7 @@
                         loadFeed();
                     } else {
                         sessionAuth = null;
-                        const urlParams = new URLSearchParams(window.location.search);
-                        if (!urlParams.get('u') || !urlParams.get('m')) {
+                        if (!isPublicView) {
                             feedContainer.innerHTML = '<div id="feedLoader" class="loader"></div>';
                             feedContainer.classList.add('hidden');
                             loginOverlay.classList.remove('hidden');
