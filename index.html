@@ -120,16 +120,36 @@
   <symbol id="icon-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
   </symbol>
+  <!-- Copy MD -->
+  <symbol id="icon-copy-md" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <rect x="2" y="4" width="20" height="16" rx="2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M6 15V9l2.5 2.5L11 9v6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M15 15V9m-2 2l2-2 2 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <!-- Paste MD -->
+  <symbol id="icon-paste-md" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <rect x="2" y="4" width="20" height="16" rx="2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M6 15V9l2.5 2.5L11 9v6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M15 9v6m-2-2l2 2 2-2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
 </svg>
 
     <header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 flex justify-between items-center z-20">
         <div class="header-left flex items-center gap-2">
             <h1 class="text-2xl font-semibold tracking-tight">7System</h1>
-            <button id="importBtn" class="btn btn-secondary" title="Import" aria-label="Import">
+            <div class="h-6 w-px bg-[var(--border)] mx-1"></div>
+            <button id="importBtn" class="btn btn-secondary" title="Import JSON" aria-label="Import">
                 <svg class="w-5 h-5"><use href="#icon-import"/></svg>
             </button>
-            <button id="exportBtn" class="btn btn-secondary" title="Export" aria-label="Export">
+            <button id="exportBtn" class="btn btn-secondary" title="Export JSON" aria-label="Export">
                 <svg class="w-5 h-5"><use href="#icon-export"/></svg>
+            </button>
+            <div class="h-6 w-px bg-[var(--border)] mx-1"></div>
+            <button id="importMdBtn" class="btn btn-secondary" title="Paste Markdown Tree" aria-label="Paste Markdown">
+                <svg class="w-5 h-5"><use href="#icon-paste-md"/></svg>
+            </button>
+            <button id="exportMdBtn" class="btn btn-secondary" title="Copy as Markdown Tree" aria-label="Copy Markdown">
+                <svg class="w-5 h-5"><use href="#icon-copy-md"/></svg>
             </button>
         </div>
         <div class="toolbar-center absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-md">
@@ -260,6 +280,18 @@
     </div>
 
     <!-- Project List Modal -->
+    <div id="confirmModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+            <h3 id="confirmModalTitle" class="text-lg font-semibold mb-4">Confirm</h3>
+            <p id="confirmModalMessage" class="text-sm text-[var(--text-secondary)] mb-4"></p>
+            <div class="flex gap-2 justify-end">
+                <button id="confirmModalNo" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+                <button id="confirmModalYes" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project List Modal -->
     <div id="projectListModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
         <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
             <div class="flex justify-between items-center mb-4">
@@ -288,6 +320,6 @@
     </div>
 
     <script type="module" src="js/api.js"></script>
-    <script type="module" src="js/editor.js"></script>
+    <script type="module" src="js/editor.js?v=5"></script>
 </body>
 </html>

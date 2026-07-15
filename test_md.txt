@@ -1,0 +1,11 @@
+- # Double Tap Any Node To Edit
+- # Welcome to MapMind<br>A powerful `markdown` mind mapping tool
+  - ## Advanced Markdown<br>**Bold text** and *italic text*<br>`code snippets`<br>~~strikethrough~~
+    - ### Links & Images<br>Explicit Link: [Visit GitHub](https://github.com/rachit9876)<br>![Logo](https://dr-fast-upload.pages.dev/public/d99bf38b2c8f.webp)
+    - ### Blockquotes<br>> Blockquote example<br>> Multiple lines supported
+    - ### GitHub Alerts<br>> [!TIP]<br>> Use GitHub alerts to highlight things!<br><br>> [!WARNING]<br>> They catch the eye easily.
+  - ### Lists & Organization<br>- Bullet point 1<br>- Bullet point 2<br>1. Numbered item<br>2. Another item<br><br>---<br>Horizontal rules supported!
+    - ### Task Lists & Hierarchy<br>- [x] Implemented features<br>- [ ] Future ideas<br>  - Nested lists<br>    - Different bullets
+    - ### Code Blocks<br>```javascript<br>// Code blocks<br>const map = new Map();<br>console.log(map);<br>```
+  - ### Data Tables<br>| Feature | Supported? |<br>| :--- | :---: | <br>| **Tables** | Yes |<br>| *Auto Links* | Yes |<br>| ~~Bugs~~ | No |
+  - ### Flowcharts & Diagrams<br>```mermaid<br>graph TD<br>  A[Start] --> B{Good?}<br>  B -->|Yes| C[Enjoy!]<br>  B -->|No| D[Fix it]<br>```

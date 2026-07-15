@@ -104,6 +104,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 fitViewBtn: document.getElementById('fitViewBtn'),
                 importBtn: document.getElementById('importBtn'),
                 exportBtn: document.getElementById('exportBtn'),
+                importMdBtn: document.getElementById('importMdBtn'),
+                exportMdBtn: document.getElementById('exportMdBtn'),
                 cloudSaveBtn: document.getElementById('cloudSaveBtn'),
                 cloudLoadBtn: document.getElementById('cloudLoadBtn'),
                 themeToggle: document.getElementById('themeToggle'),
@@ -114,9 +116,70 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 lockIconLocked: document.getElementById('lock-icon-locked'),
                 gridToggle: document.getElementById('gridToggle'),
                 fileInput: document.getElementById('file-input'),
+                confirmModal: document.getElementById('confirmModal'),
+                confirmModalTitle: document.getElementById('confirmModalTitle'),
+                confirmModalMessage: document.getElementById('confirmModalMessage'),
+                confirmModalNo: document.getElementById('confirmModalNo'),
+                confirmModalYes: document.getElementById('confirmModalYes')
             };
 
             const FONT_SIZE = 16;
+            const PADDING = 10;
+            const BORDER_RADIUS = 5;
+
+            // Global Focus Trap for Modals
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Tab') return;
+                const openModal = document.querySelector('div[role="dialog"]:not(.hidden)');
+                if (!openModal) return;
+
+                const focusableElements = openModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                if (focusableElements.length === 0) return;
+
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement || document.activeElement === document.body) {
+                        e.preventDefault();
+                        lastElement.focus();
+                    }
+                } else {
+                    if (document.activeElement === lastElement || document.activeElement === document.body) {
+                        e.preventDefault();
+                        firstElement.focus();
+                    }
+                }
+            });
+
+            const showConfirm = (message, title = 'Confirm', yesText = 'OK', noText = 'Cancel') => {
+                return new Promise((resolve) => {
+                    dom.confirmModalTitle.textContent = title;
+                    dom.confirmModalMessage.textContent = message;
+                    dom.confirmModalYes.textContent = yesText;
+                    dom.confirmModalNo.textContent = noText;
+                    dom.confirmModal.classList.remove('hidden');
+                    
+                    // Trap focus in the newly opened modal
+                    dom.confirmModalYes.focus();
+                    
+                    const cleanup = () => {
+                        dom.confirmModal.classList.add('hidden');
+                        dom.confirmModalYes.removeEventListener('click', onYes);
+                        dom.confirmModalNo.removeEventListener('click', onNo);
+                        dom.confirmModal.removeEventListener('keydown', onEsc);
+                    };
+
+                    const onYes = () => { cleanup(); resolve(true); };
+                    const onNo = () => { cleanup(); resolve(false); };
+                    const onEsc = (e) => { if (e.key === 'Escape') onNo(); };
+
+                    dom.confirmModalYes.addEventListener('click', onYes);
+                    dom.confirmModalNo.addEventListener('click', onNo);
+                    dom.confirmModal.addEventListener('keydown', onEsc);
+                });
+            };
+
             const NODE_PADDING = 16;
             const EDITOR_EXTRA_PADDING = 24;
 
@@ -575,9 +638,10 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                     }
                 });
 
-                dom.newCanvasBtn.addEventListener('click', () => {
+                dom.newCanvasBtn.addEventListener('click', async () => {
                     if (state.nodes.length > 0) {
-                        if (!confirm('Are you sure you want to create a new canvas? Any unsaved changes will be lost.')) return;
+                        const confirmed = await showConfirm('Are you sure you want to create a new canvas? Any unsaved changes will be lost.');
+                        if (!confirmed) return;
                     }
                     state.nodes = [];
                     state.nextNodeId = 1;
@@ -611,6 +675,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 dom.themeToggle.addEventListener('click', toggleTheme);
                 dom.importBtn.addEventListener('click', () => dom.fileInput.click());
                 dom.exportBtn.addEventListener('click', exportAsRXT);
+                dom.importMdBtn.addEventListener('click', pasteMarkdownTree);
+                dom.exportMdBtn.addEventListener('click', copyMarkdownTree);
                 dom.fileInput.addEventListener('change', importJSON);
                 dom.cloudSaveBtn.addEventListener('click', showCloudSaveModal);
                 dom.cloudLoadBtn.addEventListener('click', showCloudLoadModal);
@@ -1097,7 +1163,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                         deleteBtn.innerHTML = '<svg class="w-4 h-4"><use href="#icon-trash"/></svg>';
                         deleteBtn.onclick = async (e) => {
                             e.stopPropagation();
-                            if (confirm(`Delete "${mindmap.name}"?`)) {
+                            const confirmed = await showConfirm(`Delete "${mindmap.name}"?`);
+                            if (confirmed) {
                                 const result = await window.firebaseUtils.deleteMindMap(sessionAuth.username, null, mindmap.name, mindmap.key);
                                 if (result.success) {
                                     showNotification('Success', result.message, 'success');
@@ -1193,7 +1260,171 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 loadFromCloud(sessionAuth.username, null, mapName);
             };
 
-            const exportAsRXT = () => {
+            
+        const nodesToMarkdown = (nodes) => {
+            let md = '';
+            const roots = nodes.filter(n => !n.parentId || !nodes.find(pn => pn.id === n.parentId));
+            
+            const traverse = (node, depth) => {
+                const indent = '  '.repeat(depth);
+                const safeText = node.text.replace(/\n/g, '<br>');
+                md += `${indent}- ${safeText}\n`;
+                const children = nodes.filter(n => n.parentId === node.id);
+                // Sort children by Y coordinate to maintain visual order in markdown
+                children.sort((a, b) => a.y - b.y).forEach(c => traverse(c, depth + 1));
+            };
+
+            roots.sort((a, b) => a.y - b.y).forEach(r => traverse(r, 0));
+            return md.trim();
+        };
+
+        const markdownToNodes = (md, startX, startY) => {
+            // Normalize newlines to \n to support Windows (\r\n) and Mac (\r)
+            const normalizedMd = md.replace(/\r\n?/g, '\n');
+            const lines = normalizedMd.split('\n');
+            const newNodes = [];
+            let currentId = state.nextNodeId;
+            const stack = []; 
+            
+            // First pass: create all nodes and determine hierarchy
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                
+                // Match bullets (-, *, +, or •)
+                const match = line.match(/^(\s*)([-*+•]\s+)?(.*)$/);
+                
+                if (!match || !match[2]) {
+                    // If line has no bullet, append it to the previous node (handles multiline text inside a node)
+                    if (newNodes.length > 0) {
+                        const prevNode = newNodes[newNodes.length - 1];
+                        // Also replace <br> just in case it's in a multiline continuation
+                        prevNode.text += '\n' + line.trim().replace(/<br>/gi, '\n');
+                    }
+                    return;
+                }
+                
+                let spaces = match[1].length;
+                if (line.match(/^(\t*)/)[1].length > 0) {
+                    spaces = line.match(/^(\t*)/)[1].length * 2;
+                }
+                
+                const depth = Math.floor(spaces / 2); 
+                const text = match[3].replace(/<br>/gi, '\n').trim();
+                
+                while (stack.length > 0 && stack[stack.length - 1].depth >= depth) {
+                    stack.pop();
+                }
+                const parentId = stack.length > 0 ? stack[stack.length - 1].id : null;
+                
+                const node = {
+                    id: currentId++,
+                    text: text,
+                    x: 0, 
+                    y: 0,     
+                    parentId: parentId,
+                    width: 200,
+                    height: 100
+                };
+                
+                newNodes.push(node);
+                stack.push({ depth, id: node.id });
+            });
+
+            // Second pass: Calculate layout
+            const roots = newNodes.filter(n => !n.parentId);
+            
+            // Calculate height required for each subtree
+            const calculateHeight = (nodeId) => {
+                const children = newNodes.filter(n => n.parentId === nodeId);
+                if (children.length === 0) return 140; // Base spacing per node
+                return children.reduce((sum, child) => sum + calculateHeight(child.id), 0);
+            };
+
+            // Recursively position nodes
+            const positionNode = (nodeId, x, topY) => {
+                const node = newNodes.find(n => n.id === nodeId);
+                const children = newNodes.filter(n => n.parentId === nodeId);
+                
+                node.x = x;
+                
+                if (children.length === 0) {
+                    node.y = topY + 70; // Center in its 140px vertical slot
+                    return;
+                }
+                
+                let currentY = topY;
+                children.forEach(child => {
+                    const childHeight = calculateHeight(child.id);
+                    positionNode(child.id, x + 350, currentY); // 350px horizontal spacing
+                    currentY += childHeight;
+                });
+                
+                // Parent's Y is centered among its children
+                const firstChild = children[0];
+                const lastChild = children[children.length - 1];
+                node.y = (firstChild.y + lastChild.y) / 2;
+            };
+
+            // Position all roots
+            let currentRootY = startY;
+            roots.forEach(root => {
+                const rootHeight = calculateHeight(root.id);
+                positionNode(root.id, startX, currentRootY);
+                currentRootY += rootHeight;
+            });
+            
+            return { nodes: newNodes, nextId: currentId };
+        };
+
+        const copyMarkdownTree = async () => {
+            if (state.nodes.length === 0) {
+                showNotification('Mind map is empty.', 'error');
+                return;
+            }
+            const md = nodesToMarkdown(state.nodes);
+            const aiPrompt = "proof read this and give directd fix outoput in code block, Keep it strictly as an indented markdown list (using `-` or `*`) so I can paste it back into my tool. Note that `<br>` represents line breaks within a single node:\n\n";
+            const clipboardText = aiPrompt + md;
+            try {
+                await navigator.clipboard.writeText(clipboardText);
+                showNotification('Markdown tree copied to clipboard!', 'success');
+            } catch (err) {
+                showNotification('Failed to copy to clipboard.', 'error');
+            }
+        };
+
+        const pasteMarkdownTree = async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (!text) {
+                    showNotification('Clipboard is empty.', 'error');
+                    return;
+                }
+                
+                const centerX = -state.pan.x + canvas.width / 2 / state.zoom;
+                const centerY = -state.pan.y + canvas.height / 2 / state.zoom;
+                
+                const result = markdownToNodes(text, centerX, centerY);
+                if (result.nodes.length > 0) {
+                    const confirmed = await showConfirm('Do you want to replace the current mind map with the pasted tree? (Cancel will append)');
+                    if (confirmed) {
+                        state.nodes = result.nodes;
+                    } else {
+                        state.nodes = state.nodes.concat(result.nodes);
+                    }
+                    state.nextNodeId = result.nextId;
+                    saveState();
+                    requestRedraw();
+                    showNotification(`Pasted ${result.nodes.length} nodes!`, 'success');
+                } else {
+                    showNotification('No valid markdown list found in clipboard.', 'error');
+                }
+            } catch (err) {
+                showNotification('Failed to read clipboard.', 'error');
+            }
+        };
+
+        const exportAsRXT = () => {
+
                 const now = new Date();
                 const timestamp = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}`;
                 
@@ -2274,4 +2505,34 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
             };
 
             init();
+
+        window.addEventListener('paste', async (e) => {
+            if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') {
+                return;
+            }
+            
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (!text || !text.split('\n').some(l => l.trim().startsWith('- ') || l.trim().startsWith('* '))) {
+                return;
+            }
+            
+            const mouseX = (window.lastMouseX || canvas.width / 2) - state.pan.x;
+            const mouseY = (window.lastMouseY || canvas.height / 2) - state.pan.y;
+            
+            const result = markdownToNodes(text, mouseX, mouseY);
+            if (result.nodes.length > 0) {
+                state.nodes = state.nodes.concat(result.nodes);
+                state.nextNodeId = result.nextId;
+                saveState();
+                requestRedraw();
+                showNotification(`Pasted ${result.nodes.length} nodes from clipboard!`, 'success');
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            window.lastMouseX = (e.clientX - state.pan.x) / state.zoom;
+            window.lastMouseY = (e.clientY - state.pan.y) / state.zoom;
+        });
+
         });
