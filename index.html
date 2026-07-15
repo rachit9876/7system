@@ -415,6 +415,7 @@
                 nodesLocked: false,
                 showGrid: true,
                 cancelingEdit: false,
+                isDark: document.documentElement.classList.contains('dark'),
             };
 
             const dom = {
@@ -494,14 +495,14 @@
                         const endY = startY + (canvas.clientHeight / state.zoom) + dotSpacing;
                         
                         ctx.fillStyle = getCachedVar('--border');
-                        ctx.globalAlpha = document.documentElement.classList.contains('dark') ? 0.12 : 0.18;
+                        ctx.globalAlpha = state.isDark ? 0.12 : 0.18;
+                        ctx.beginPath();
                         for (let x = startX; x < endX; x += dotSpacing) {
                             for (let y = startY; y < endY; y += dotSpacing) {
-                                ctx.beginPath();
-                                ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-                                ctx.fill();
+                                ctx.rect(x - dotSize/2, y - dotSize/2, dotSize, dotSize);
                             }
                         }
+                        ctx.fill();
                         ctx.globalAlpha = 1;
                     }
                 }
@@ -950,7 +951,11 @@
                     showNotification('Success', 'Logged out successfully', 'success');
                 });
 
-                window.addEventListener('resize', resizeCanvas);
+                let resizeTimeout;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(resizeCanvas, 100);
+                });
                 window.addEventListener('keydown', onKeyDown);
                 document.addEventListener('click', () => hideContextMenu());
                 
@@ -1548,6 +1553,10 @@
             const toggleTheme = () => {
                 document.documentElement.classList.toggle('dark');
                 const isDark = document.documentElement.classList.contains('dark');
+                state.isDark = isDark;
+                if (window.mermaid) {
+                    mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+                }
                 dom.themeIconLight.classList.toggle('hidden', isDark);
                 dom.themeIconDark.classList.toggle('hidden', !isDark);
                 dom.themeToggle.classList.toggle('is-active', isDark);
@@ -1619,8 +1628,6 @@
                 
                 const id = `mermaid-${mermaidIdCounter++}`;
                 mermaidCache.set(cacheKey, { loading: true, img: null });
-                
-                mermaid.initialize({ startOnLoad: false, theme });
                 
                 mermaid.render(id, code).then(result => {
                     const svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(result.svg);
@@ -1802,7 +1809,7 @@
                         const tableWidth = colWidths.reduce((sum, w) => sum + w, 0) + (colWidths.length + 1) * 1;
                         const tableHeight = (1 + part.rows.length) * (lineHeight + 16);
                         
-                        ctx.strokeStyle = getCssVar('--node-border') || '#d1d5db';
+                        ctx.strokeStyle = getCachedVar('--node-border') || '#d1d5db';
                         ctx.lineWidth = 1;
                         
                         let startY = currentY - lineHeight * 0.8;
@@ -1813,7 +1820,7 @@
                         const drawRow = (cells, isHeader) => {
                             let startX = currentX;
                             if (isHeader) {
-                                ctx.fillStyle = getCssVar('--bg-secondary') || '#f3f4f6';
+                                ctx.fillStyle = getCachedVar('--bg-secondary') || '#f3f4f6';
                                 ctx.fillRect(startX, startY, tableWidth, rowHeight);
                             }
                             
@@ -1850,9 +1857,9 @@
                                     if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
                                     else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
                                     
-                                    ctx.fillStyle = getCssVar('--node-text');
+                                    ctx.fillStyle = getCachedVar('--node-text');
                                     if (cp.code) { ctx.font = `500 ${FONT_SIZE}px monospace`; ctx.fillStyle = '#22c55e'; }
-                                    if (cp.link) ctx.fillStyle = getCssVar('--link');
+                                    if (cp.link) ctx.fillStyle = getCachedVar('--link');
                                     
                                     if (isHeader && !cp.code && !cp.link && !cp.heading) {
                                         ctx.font = `700 ${FONT_SIZE}px sans-serif`;
@@ -1932,14 +1939,14 @@
                     }
                     
                     ctx.save();
-                    ctx.fillStyle = getCssVar('--node-text');
+                    ctx.fillStyle = getCachedVar('--node-text');
                     
                     // Handle headings
                     if (part.heading) {
                         const headingSizes = [32, 26, 22, 18, 16, 14];
                         const headingSize = headingSizes[part.heading - 1] || 12;
                         ctx.font = `700 ${headingSize}px sans-serif`;
-                        ctx.fillStyle = getCssVar('--node-text');
+                        ctx.fillStyle = getCachedVar('--node-text');
                         currentLineHeight = Math.max(currentLineHeight, headingSize * 1.5 + 10);
                     }
 
@@ -1965,7 +1972,7 @@
                         }
 
                         if (part.link) {
-                            ctx.fillStyle = getCssVar('--link');
+                            ctx.fillStyle = getCachedVar('--link');
                         }
                         if (part.blockquote) {
                             if (part.alertType === 'NOTE') ctx.fillStyle = '#3b82f6';
@@ -1996,7 +2003,7 @@
                     if (part.link) {
                         const width = ctx.measureText(part.text).width;
                         const underlineY = currentY + FONT_SIZE * 0.55;
-                        ctx.strokeStyle = getCssVar('--link');
+                        ctx.strokeStyle = getCachedVar('--link');
                         ctx.lineWidth = 1;
                         ctx.beginPath();
                         ctx.moveTo(currentX, underlineY);
@@ -2582,6 +2589,11 @@
                     state.nodesLocked = false;
                 }
                 syncToggleControls();
+                
+                state.isDark = document.documentElement.classList.contains('dark');
+                if (window.mermaid) {
+                    mermaid.initialize({ startOnLoad: false, theme: state.isDark ? 'dark' : 'default' });
+                }
             };
 
             init();
