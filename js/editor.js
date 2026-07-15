@@ -119,6 +119,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 confirmModal: document.getElementById('confirmModal'),
                 confirmModalTitle: document.getElementById('confirmModalTitle'),
                 confirmModalMessage: document.getElementById('confirmModalMessage'),
+                confirmModalCancel: document.getElementById('confirmModalCancel'),
                 confirmModalNo: document.getElementById('confirmModalNo'),
                 confirmModalYes: document.getElementById('confirmModalYes')
             };
@@ -127,37 +128,55 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
             const PADDING = 10;
             const BORDER_RADIUS = 5;
 
-            // Global Focus Trap for Modals
+            // Global Keyboard Handler for Modals
             document.addEventListener('keydown', (e) => {
-                if (e.key !== 'Tab') return;
                 const openModal = document.querySelector('div[role="dialog"]:not(.hidden)');
                 if (!openModal) return;
 
-                const focusableElements = openModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-                if (focusableElements.length === 0) return;
+                if (e.key === 'Escape') {
+                    // Close the active modal
+                    if (openModal.id === 'accountModal') hideAccountModal();
+                    else if (openModal.id === 'cloudModal') hideCloudModal();
+                    else if (openModal.id === 'projectListModal') openModal.classList.add('hidden');
+                    // confirmModal handles its own Escape key
+                    return;
+                }
 
-                const firstElement = focusableElements[0];
-                const lastElement = focusableElements[focusableElements.length - 1];
+                if (e.key === 'Tab') {
+                    const focusableElements = openModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    if (focusableElements.length === 0) return;
 
-                if (e.shiftKey) {
-                    if (document.activeElement === firstElement || document.activeElement === document.body) {
-                        e.preventDefault();
-                        lastElement.focus();
-                    }
-                } else {
-                    if (document.activeElement === lastElement || document.activeElement === document.body) {
-                        e.preventDefault();
-                        firstElement.focus();
+                    const firstElement = focusableElements[0];
+                    const lastElement = focusableElements[focusableElements.length - 1];
+
+                    if (e.shiftKey) {
+                        if (document.activeElement === firstElement || document.activeElement === document.body) {
+                            e.preventDefault();
+                            lastElement.focus();
+                        }
+                    } else {
+                        if (document.activeElement === lastElement || document.activeElement === document.body) {
+                            e.preventDefault();
+                            firstElement.focus();
+                        }
                     }
                 }
             });
 
-            const showConfirm = (message, title = 'Confirm', yesText = 'OK', noText = 'Cancel') => {
+            const showConfirm = (message, title = 'Confirm', yesText = 'OK', noText = 'Cancel', cancelText = null) => {
                 return new Promise((resolve) => {
                     dom.confirmModalTitle.textContent = title;
                     dom.confirmModalMessage.textContent = message;
                     dom.confirmModalYes.textContent = yesText;
                     dom.confirmModalNo.textContent = noText;
+                    
+                    if (cancelText) {
+                        dom.confirmModalCancel.textContent = cancelText;
+                        dom.confirmModalCancel.classList.remove('hidden');
+                    } else {
+                        dom.confirmModalCancel.classList.add('hidden');
+                    }
+                    
                     dom.confirmModal.classList.remove('hidden');
                     
                     // Trap focus in the newly opened modal
@@ -167,15 +186,18 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                         dom.confirmModal.classList.add('hidden');
                         dom.confirmModalYes.removeEventListener('click', onYes);
                         dom.confirmModalNo.removeEventListener('click', onNo);
+                        dom.confirmModalCancel.removeEventListener('click', onCancel);
                         dom.confirmModal.removeEventListener('keydown', onEsc);
                     };
 
-                    const onYes = () => { cleanup(); resolve(true); };
-                    const onNo = () => { cleanup(); resolve(false); };
-                    const onEsc = (e) => { if (e.key === 'Escape') onNo(); };
+                    const onYes = () => { cleanup(); resolve(cancelText ? 'yes' : true); };
+                    const onNo = () => { cleanup(); resolve(cancelText ? 'no' : false); };
+                    const onCancel = () => { cleanup(); resolve('cancel'); };
+                    const onEsc = (e) => { if (e.key === 'Escape') onCancel(); };
 
                     dom.confirmModalYes.addEventListener('click', onYes);
                     dom.confirmModalNo.addEventListener('click', onNo);
+                    dom.confirmModalCancel.addEventListener('click', onCancel);
                     dom.confirmModal.addEventListener('keydown', onEsc);
                 });
             };
@@ -726,16 +748,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                     if (e.key === 'Escape') hideAccountModal();
                 });
                 
-                // Override modal event listeners
-                document.getElementById('overrideNo').addEventListener('click', () => {
-                    document.getElementById('overrideModal').classList.add('hidden');
-                    document.getElementById('cloudModal').classList.remove('hidden');
-                });
-                document.getElementById('overrideYes').addEventListener('click', () => {
-                    document.getElementById('overrideModal').classList.add('hidden');
-                    const mindmapName = document.getElementById('mindmapNameInput').value.trim();
-                    performCloudSave(mindmapName, true);
-                });
+                // Removed override modal event listeners in favor of showConfirm
                 
                 document.getElementById('mindmapNameInput').addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
@@ -1093,7 +1106,17 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                     const exists = existingMindMaps.some(m => m.name === mindmapName);
                     if (exists) {
                         document.getElementById('cloudModal').classList.add('hidden');
-                        document.getElementById('overrideModal').classList.remove('hidden');
+                        const confirmed = await showConfirm(
+                            'A project with this name already exists. Do you want to overwrite the existing one?', 
+                            'Override Existing?', 
+                            'Yes', 
+                            'No'
+                        );
+                        if (confirmed) {
+                            performCloudSave(mindmapName, true);
+                        } else {
+                            document.getElementById('cloudModal').classList.remove('hidden');
+                        }
                     } else {
                         performCloudSave(mindmapName, false);
                     }
@@ -1405,8 +1428,24 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 
                 const result = markdownToNodes(text, centerX, centerY);
                 if (result.nodes.length > 0) {
-                    const confirmed = await showConfirm('Do you want to replace the current mind map with the pasted tree? (Cancel will append)');
-                    if (confirmed) {
+                    let shouldReplace = false;
+                    
+                    if (state.nodes.length > 0) {
+                        const action = await showConfirm(
+                            'Do you want to replace the current mind map with the pasted tree, or append to it?', 
+                            'Paste Markdown', 
+                            'Replace', 
+                            'Append', 
+                            'Cancel'
+                        );
+                        
+                        if (action === 'cancel') return;
+                        shouldReplace = (action === 'yes');
+                    } else {
+                        shouldReplace = true;
+                    }
+                    
+                    if (shouldReplace) {
                         state.nodes = result.nodes;
                     } else {
                         state.nodes = state.nodes.concat(result.nodes);
