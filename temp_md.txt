@@ -1,0 +1,280 @@
+            const appendInlinePart = (parts, text, styles = {}) => {
+                if (!text) return;
+
+                const part = createTextPart(text, styles);
+                const previous = parts[parts.length - 1];
+                const comparableKeys = ['bold', 'italic', 'code', 'codeBlock', 'strikethrough', 'blockquote', 'heading', 'link', 'list'];
+                const canMerge = previous
+                    && !previous.image
+                    && comparableKeys.every(key => previous[key] === part[key]);
+
+                if (canMerge) {
+                    previous.text += text;
+                } else {
+                    parts.push(part);
+                }
+            };
+
+            const parseInlineMarkdown = (text, baseStyles = {}) => {
+                const parts = [];
+                const styles = {
+                    bold: Boolean(baseStyles.bold),
+                    italic: Boolean(baseStyles.italic),
+                    strikethrough: Boolean(baseStyles.strikethrough)
+                };
+                let plainText = '';
+                let index = 0;
+
+                const currentStyles = (extra = {}) => ({ ...baseStyles, ...styles, ...extra });
+                const flushPlainText = () => {
+                    appendInlinePart(parts, plainText, currentStyles());
+                    plainText = '';
+                };
+                const hasClosingMarker = (marker, start) => text.indexOf(marker, start + marker.length) !== -1;
+
+                while (index < text.length) {
+                    if (text[index] === '\\' && index + 1 < text.length) {
+                        plainText += text[index + 1];
+                        index += 2;
+                        continue;
+                    }
+
+                    if (text.startsWith('![', index)) {
+                        const labelEnd = text.indexOf('](', index + 2);
+                        const urlEnd = labelEnd === -1 ? -1 : text.indexOf(')', labelEnd + 2);
+                        if (labelEnd !== -1 && urlEnd !== -1) {
+                            flushPlainText();
+                            parts.push({
+                                ...createTextPart('', currentStyles()),
+                                image: text.slice(labelEnd + 2, urlEnd),
+                                alt: text.slice(index + 2, labelEnd)
+                            });
+                            index = urlEnd + 1;
+                            continue;
+                        }
+                    }
+
+                    if (text[index] === '[') {
+                        const labelEnd = text.indexOf('](', index + 1);
+                        const urlEnd = labelEnd === -1 ? -1 : text.indexOf(')', labelEnd + 2);
+                        if (labelEnd !== -1 && urlEnd !== -1) {
+                            flushPlainText();
+                            appendInlinePart(
+                                parts,
+                                text.slice(index + 1, labelEnd),
+                                currentStyles({ link: text.slice(labelEnd + 2, urlEnd) })
+                            );
+                            index = urlEnd + 1;
+                            continue;
+                        }
+                    }
+
+                    if (text[index] === '`') {
+                        const closingIndex = text.indexOf('`', index + 1);
+                        if (closingIndex !== -1) {
+                            flushPlainText();
+                            appendInlinePart(parts, text.slice(index + 1, closingIndex), currentStyles({ code: true }));
+                            index = closingIndex + 1;
+                            continue;
+                        }
+                    }
+
+                    const markerRules = [
+                        { marker: '***', active: () => styles.bold && styles.italic, toggle: () => { styles.bold = !styles.bold; styles.italic = !styles.italic; } },
+                        { marker: '___', active: () => styles.bold && styles.italic, toggle: () => { styles.bold = !styles.bold; styles.italic = !styles.italic; } },
+                        { marker: '**', active: () => styles.bold, toggle: () => { styles.bold = !styles.bold; } },
+                        { marker: '__', active: () => styles.bold, toggle: () => { styles.bold = !styles.bold; } },
+                        { marker: '~~', active: () => styles.strikethrough, toggle: () => { styles.strikethrough = !styles.strikethrough; } },
+                        { marker: '*', active: () => styles.italic, toggle: () => { styles.italic = !styles.italic; } },
+                        { marker: '_', active: () => styles.italic, toggle: () => { styles.italic = !styles.italic; } }
+                    ];
+
+                    const rule = markerRules.find(({ marker, active }) =>
+                        text.startsWith(marker, index) && (active() || hasClosingMarker(marker, index))
+                    );
+
+                    if (rule) {
+                        flushPlainText();
+                        rule.toggle();
+                        index += rule.marker.length;
+                        continue;
+                    }
+
+                    plainText += text[index];
+                    index++;
+                }
+
+                flushPlainText();
+                return parts.length ? parts : [createTextPart(text, baseStyles)];
+            };
+
+            const parseMarkdown = (text) => {
+                const source = typeof text === 'string' ? text.replace(/\r\n?/g, '\n') : '';
+                const lines = source.split('\n');
+                const parts = [];
+                let inCodeBlock = false;
+                let hasRenderedLine = false;
+
+                const startLine = () => {
+                    if (hasRenderedLine) parts.push(createTextPart('\n'));
+                    hasRenderedLine = true;
+                };
+
+                const isTableSeparator = (str) => /^\|?\s*(?:-+|:-+|-+:|:-+:)(?:\s*\|\s*(?:-+|:-+|-+:|:-+:))+\s*\|?$/.test(str.trim());
+                let inTable = false;
+                let tableHeaders = [];
+                let tableAlignments = [];
+                let tableRows = [];
+
+                const flushTable = () => {
+                    if (inTable && tableHeaders.length > 0) {
+                        parts.push({ table: true, headers: tableHeaders, alignments: tableAlignments, rows: tableRows });
+                    }
+                    inTable = false;
+                    tableHeaders = [];
+                    tableAlignments = [];
+                    tableRows = [];
+                };
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (inCodeBlock) {
+                        if (/^\s*```\s*$/.test(line)) {
+                            inCodeBlock = false;
+                            continue;
+                        }
+
+                        startLine();
+                        parts.push(createTextPart(line, { code: true, codeBlock: true }));
+                        continue;
+                    }
+
+                    if (/^\s*```mermaid\s*$/.test(line)) {
+                        flushTable();
+                        let mermaidCode = '';
+                        i++;
+                        while(i < lines.length && !/^\s*```\s*$/.test(lines[i])) {
+                            mermaidCode += lines[i] + '\n';
+                            i++;
+                        }
+                        startLine();
+                        parts.push({ mermaid: true, text: mermaidCode.trim() });
+                        continue;
+                    }
+
+                    if (/^\s*```[^`]*$/.test(line)) {
+                        inCodeBlock = true;
+                        flushTable();
+                        continue;
+                    }
+
+                    if (!inTable && line.includes('|') && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
+                        startLine();
+                        inTable = true;
+                        const parseCells = (row) => row.split('|').map(s => s.trim()).filter((s, idx, arr) => !(s === '' && (idx === 0 || idx === arr.length - 1))).map(s => parseInlineMarkdown(s));
+                        tableHeaders = parseCells(line);
+                        
+                        const seps = lines[i + 1].split('|').map(s => s.trim()).filter((s, idx, arr) => !(s === '' && (idx === 0 || idx === arr.length - 1)));
+                        tableAlignments = seps.map(s => {
+                            if (s.startsWith(':') && s.endsWith(':')) return 'center';
+                            if (s.endsWith(':')) return 'right';
+                            return 'left';
+                        });
+                        
+                        i++; // skip separator
+                        continue;
+                    }
+
+                    if (inTable) {
+                        if (!line.includes('|')) {
+                            flushTable();
+                        } else {
+                            const parseCells = (row) => row.split('|').map(s => s.trim()).filter((s, idx, arr) => !(s === '' && (idx === 0 || idx === arr.length - 1))).map(s => parseInlineMarkdown(s));
+                            tableRows.push(parseCells(line));
+                            continue;
+                        }
+                    }
+
+                    startLine();
+
+                    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+                    if (headingMatch) {
+                        parts.push(...parseInlineMarkdown(headingMatch[2], { heading: headingMatch[1].length }));
+                        continue;
+                    }
+
+                    if (/^\s*(?:---+|\*\*\*+|___+)\s*$/.test(line)) {
+                        parts.push(createTextPart('───────────────', { hr: true }));
+                        continue;
+                    }
+
+                    const blockquoteMatch = line.match(/^(\s*)(>+)\s?(.*)$/);
+                    if (blockquoteMatch) {
+                        const level = blockquoteMatch[2].length;
+                        const quoteText = blockquoteMatch[3];
+                        const alertMatch = quoteText.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/i);
+                        
+                        if (alertMatch) {
+                            const alertType = alertMatch[1].toUpperCase();
+                            const icon = { NOTE: 'ℹ️', TIP: '💡', IMPORTANT: '🔥', WARNING: '⚠️', CAUTION: '🛑' }[alertType];
+                            appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}`, { blockquote: level, alertType });
+                            parts.push(...parseInlineMarkdown(`${icon} ${alertType}`, { blockquote: level, alertType, bold: true }));
+                        } else {
+                            const isAlertText = parts.length > 0 && parts[parts.length - 1].alertType;
+                            if (isAlertText) {
+                                appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}  `, { blockquote: level, alertType: parts[parts.length - 1].alertType });
+                                parts.push(...parseInlineMarkdown(quoteText, { blockquote: level, alertType: parts[parts.length - 1].alertType }));
+                            } else {
+                                appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}▎ `, { blockquote: level });
+                                parts.push(...parseInlineMarkdown(quoteText, { blockquote: level }));
+                            }
+                        }
+                        continue;
+                    }
+
+                    const unorderedListMatch = line.match(/^(\s*)[-*+]\s+(.*)$/);
+                    if (unorderedListMatch) {
+                        const indentStr = unorderedListMatch[1];
+                        const indentLevel = Math.floor(indentStr.length / 2);
+                        const bullets = ['•', '○', '■', '□'];
+                        const bullet = bullets[indentLevel % bullets.length];
+                        
+                        const text = unorderedListMatch[2];
+                        const taskMatch = text.match(/^\[([ xX])\]\s+(.*)$/);
+                        if (taskMatch) {
+                            const checked = taskMatch[1].toLowerCase() === 'x';
+                            appendInlinePart(parts, `${indentStr}${checked ? '☑' : '☐'} `, { list: true, taskList: true, checked });
+                            parts.push(...parseInlineMarkdown(taskMatch[2], { list: true }));
+                        } else {
+                            appendInlinePart(parts, `${indentStr}${bullet} `, { list: true });
+                            parts.push(...parseInlineMarkdown(text, { list: true }));
+                        }
+                        continue;
+                    }
+
+                    const orderedListMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+                    if (orderedListMatch) {
+                        appendInlinePart(parts, `${orderedListMatch[1]}${orderedListMatch[2]}. `, { list: true });
+                        parts.push(...parseInlineMarkdown(orderedListMatch[3], { list: true }));
+                        continue;
+                    }
+
+                    parts.push(...parseInlineMarkdown(line));
+                }
+                flushTable();
+
+                return parts.length ? parts : [createTextPart('')];
+            };
+
+            const getWrappedParts = (ctx, text, maxWidth = 350) => {
+                const parts = parseMarkdown(text);
+                const wrappedParts = [];
+                let currentLineWidth = 0;
+                
+                parts.forEach(part => {
+                    if (part.text === '\n') {
+                        currentLineWidth = 0;
+                        wrappedParts.push(part);
+                        return;
+                    }
+                    if (part.table || part.mermaid || part.image || part.heading) {

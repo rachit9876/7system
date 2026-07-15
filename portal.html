@@ -3,205 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Manage your 7System mind maps from the dashboard.">
     <title>Dashboard - 7System</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 
-    <style>
-        .portal-main {
-            padding: 1rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-            overflow-y: auto;
-        }
-        @media (min-width: 768px) {
-            .portal-main {
-                padding: 2rem;
-            }
-        }
-        .portal-section {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            box-shadow: var(--shadow-raised);
-        }
-        @media (min-width: 768px) {
-            .portal-section {
-                padding: 2rem;
-                margin-bottom: 2rem;
-            }
-        }
-        .portal-section h2 {
-            font-size: 1.25rem;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-        @media (min-width: 768px) {
-            .portal-section h2 {
-                font-size: 1.5rem;
-                margin-bottom: 1.5rem;
-            }
-        }
-        .map-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-        @media (min-width: 640px) {
-            .map-grid {
-                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            }
-        }
-        .map-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 1.25rem;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        .map-card:hover {
-            box-shadow: var(--shadow-raised);
-            transform: translateY(-2px);
-        }
-        .map-card h3 {
-            margin-bottom: 0.25rem;
-            font-size: 1.05rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding-right: 2rem; /* space for checkbox */
-        }
-        .map-card p {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            margin-bottom: 0.75rem;
-            flex-grow: 1;
-        }
-        /* Toggle Switch */
-        .toggle {
-            position: relative;
-            width: 44px;
-            height: 24px;
-            background: var(--border);
-            border-radius: 40px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-            flex-shrink: 0;
-            outline: none;
-        }
-
-        .toggle.active {
-            background: var(--success, #2c8c5c);
-        }
-
-        .toggle-knob {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 20px;
-            height: 20px;
-            background: #ffffff;
-            border-radius: 50%;
-            transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), background 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .toggle.active .toggle-knob {
-            transform: translateX(20px);
-        }
-
-        .toggle:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
-        .map-checkbox {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            width: 1.25rem;
-            height: 1.25rem;
-            accent-color: var(--accent);
-            cursor: pointer;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-            max-width: 400px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: var(--bg);
-            color: var(--text-primary);
-            transition: var(--transition);
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-soft);
-        }
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-            border-color: var(--danger);
-        }
-        .btn-danger:hover {
-            background: #991b1b;
-        }
-        .action-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .bulk-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-        @media (min-width: 768px) {
-            .bulk-actions {
-                width: auto;
-            }
-        }
-        /* Overrides to standard btn classes for text buttons */
-        .btn-text {
-            width: 100%;
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-            justify-content: center;
-        }
-        @media (min-width: 640px) {
-            .btn-text {
-                width: auto;
-            }
-        }
-        /* Grid Utilities */
-        .grid { display: grid; }
-        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        @media (min-width: 768px) {
-            .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-        .gap-8 { gap: 2rem; }
-
-    </style>
+    <link rel="stylesheet" href="css/portal.css">
 </head>
 <body class="flex flex-col h-screen">
 
@@ -322,7 +128,7 @@
 <!-- Modals -->
 
 <!-- Rename Modal -->
-<div id="renameModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+<div id="renameModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
     <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
         <h3 class="text-lg font-semibold mb-4">Rename Mind Map</h3>
         <div class="mb-4">
@@ -337,7 +143,7 @@
 </div>
 
 <!-- Delete Account Confirm Modal -->
-<div id="deleteAccountModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+<div id="deleteAccountModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
     <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
         <h3 class="text-lg font-semibold mb-4 text-[var(--danger)]">Confirm Account Deletion</h3>
         <p class="text-sm text-[var(--text-secondary)] mb-4">Please enter your password to confirm account deletion.</p>
@@ -362,8 +168,8 @@
     </div>
 </div>
 
-<script type="module" src="api.js"></script>
-<script type="module" src="portal.js"></script>
+<script type="module" src="js/api.js"></script>
+<script type="module" src="js/portal.js"></script>
 
 </body>
 </html>

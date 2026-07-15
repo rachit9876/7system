@@ -1,4 +1,5 @@
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+import { showNotification } from "./shared/notifications.js";
 
 // Check Auth
 let sessionAuth = null;
@@ -36,34 +37,7 @@ const waitForAuth = setInterval(() => {
     }
 }, 50);
 
-// Notifications
-let notificationTimer = null;
-function showNotification(title, message, type = 'success') {
-    const notification = document.getElementById('notification');
-    const titleEl = document.getElementById('notificationTitle');
-    const messageEl = document.getElementById('notificationMessage');
-    const iconEl = document.getElementById('notificationIcon');
-    
-    titleEl.textContent = title;
-    messageEl.textContent = message;
-    
-    if (type === 'success') {
-        iconEl.innerHTML = '<svg class="w-6 h-6 text-[var(--success)]"><use href="#icon-check"/></svg>';
-    } else if (type === 'error') {
-        iconEl.innerHTML = '<svg class="w-6 h-6 text-[var(--danger)]"><use href="#icon-x"/></svg>';
-    }
-    
-    notification.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-    notification.classList.add('translate-y-0', 'opacity-100');
-    
-    if (notificationTimer) clearTimeout(notificationTimer);
-
-    notificationTimer = setTimeout(() => {
-        notification.classList.remove('translate-y-0', 'opacity-100');
-        notification.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-        notificationTimer = null;
-    }, 3000);
-}
+// Notifications imported from shared module
 
 // Theme Handling
 const themeToggle = document.getElementById('themeToggle');
