@@ -18,6 +18,7 @@ const initPortal = () => {
     loadMindMaps();
 };
 
+let authRetries = 0;
 const waitForAuth = setInterval(() => {
     if (window.firebaseAuth) {
         clearInterval(waitForAuth);
@@ -29,6 +30,9 @@ const waitForAuth = setInterval(() => {
                 window.location.replace('index.html');
             }
         });
+    } else if (++authRetries > 200) {
+        clearInterval(waitForAuth);
+        window.location.replace('index.html');
     }
 }, 50);
 
@@ -131,7 +135,7 @@ const renderMindMaps = () => {
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
-        return div.innerHTML;
+        return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 
     mindMaps.forEach(map => {

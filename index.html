@@ -850,10 +850,10 @@
                 nodeEditor.addEventListener('keydown', e => {
                     if (e.key === 'Enter') {
                         if (e.shiftKey) {
-                            setTimeout(updateEditorSize, 0);
-                        } else {
                             e.preventDefault();
                             finishEditingNode();
+                        } else {
+                            setTimeout(updateEditorSize, 0);
                         }
                     }
                     if (e.key === 'Escape') cancelEditingNode();
@@ -1252,7 +1252,7 @@
             
             const handleAccountLogin = async () => {
                 const username = document.getElementById('accountUsernameInput').value.trim();
-                const password = document.getElementById('accountPasswordInput').value.trim();
+                const password = document.getElementById('accountPasswordInput').value;
                 
                 if (!username || !password) {
                     showNotification('Error', 'Please enter username and password', 'error');
@@ -1266,6 +1266,7 @@
                 const result = await window.firebaseUtils.loginRegister(username, password);
                 if (result.success) {
                     sessionAuth = { username };
+                    localStorage.setItem('7systemSessionAuth', JSON.stringify(sessionAuth));
                     hideAccountModal();
                     showNotification('Success', result.message, 'success');
                 } else {
@@ -1334,6 +1335,10 @@
                     
                     if (!mindmapName) {
                         showNotification('Error', 'Please enter a name', 'error');
+                        return;
+                    }
+                    if (/[.$#\[\]\/]/.test(mindmapName)) {
+                        showNotification('Error', 'Map name contains invalid characters (. $ # [ ] /)', 'error');
                         return;
                     }
                     
