@@ -68,10 +68,10 @@ const firebaseUtils = {
         }
     },
 
-    loadPublicMindMap: async (pubEmail, pubMapName) => {
+    loadPublicMindMap: async (pubUserId, pubMapName) => {
         try {
-            const safeEmail = pubEmail.replace(/\./g, ',');
-            const snapshot = await get(ref(db, `public_mindmaps/${safeEmail}/${pubMapName}`));
+            const safeKey = pubUserId.includes('@') ? pubUserId.replace(/\./g, ',') : pubUserId;
+            const snapshot = await get(ref(db, `public_mindmaps/${safeKey}/${pubMapName}`));
             const data = snapshot.val();
             if (data && data.isPublic) {
                 return { success: true, data: data.data };
@@ -86,8 +86,7 @@ const firebaseUtils = {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         try {
             await remove(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`));
-            const safeEmail = email.replace(/\./g, ',');
-            await remove(ref(db, `public_mindmaps/${safeEmail}/${mindmapName}`));
+            await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`));
             return { success: true, message: 'Deleted successfully' };
         } catch (error) {
             return { success: false, message: error.message };
@@ -109,9 +108,8 @@ const firebaseUtils = {
             await remove(oldRef);
 
             if (data.isPublic) {
-                const safeEmail = email.replace(/\./g, ',');
-                await set(ref(db, `public_mindmaps/${safeEmail}/${newName}`), data);
-                await remove(ref(db, `public_mindmaps/${safeEmail}/${oldName}`));
+                await set(ref(db, `public_mindmaps/${auth.currentUser.uid}/${newName}`), data);
+                await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${oldName}`));
             }
 
             return { success: true, message: 'Renamed successfully' };
@@ -140,8 +138,7 @@ const firebaseUtils = {
             
             const uid = auth.currentUser.uid;
             await remove(ref(db, `mindmaps/${uid}`));
-            const safeEmail = email.replace(/\./g, ',');
-            await remove(ref(db, `public_mindmaps/${safeEmail}`));
+            await remove(ref(db, `public_mindmaps/${uid}`));
             await deleteUser(auth.currentUser);
             return { success: true, message: 'Account deleted' };
         } catch (error) {
@@ -178,8 +175,7 @@ const firebaseUtils = {
             await set(existingRef, payload);
             
             if (isPublic) {
-                const safeEmail = email.replace(/\./g, ',');
-                await set(ref(db, `public_mindmaps/${safeEmail}/${mindmapName}`), payload);
+                await set(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`), payload);
             }
             
             return { success: true, message: 'Saved successfully' };
@@ -192,14 +188,12 @@ const firebaseUtils = {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         try {
             await update(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`), { isPublic });
-            // Safe email for Firebase key (replace '.' with ',')
-            const safeEmail = email.replace(/\./g, ',');
             
             if (isPublic) {
                 const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`));
-                await set(ref(db, `public_mindmaps/${safeEmail}/${mindmapName}`), snapshot.val());
+                await set(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`), snapshot.val());
             } else {
-                await remove(ref(db, `public_mindmaps/${safeEmail}/${mindmapName}`));
+            await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`));
             }
             return { success: true, message: `Mind map is now ${isPublic ? 'public' : 'private'}` };
         } catch (error) {

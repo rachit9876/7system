@@ -1,7 +1,35 @@
+# Cloudflare & Dependencies
 /.wrangler
 /node_modules
 /functions/node_modules
-/.env
-/.env.*
 /dist
+
+# Environment variables & secrets
+.env
+.env.*
 *.vars
+*.pem
+*.key
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Editor & IDE configs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary & Log files
+*.log
+*.tmp
+temp_*.txt
+test_*.txt

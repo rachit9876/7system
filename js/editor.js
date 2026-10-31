@@ -38,7 +38,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 clearInterval(waitForAuth);
                 onAuthStateChanged(window.firebaseAuth, (user) => {
                     if (user) {
-                        sessionAuth = { username: user.email };
+                        sessionAuth = { username: user.email, uid: user.uid };
                         const mapToLoad = sessionStorage.getItem('7systemLoadMap');
                         if (mapToLoad) {
                             sessionStorage.removeItem('7systemLoadMap');

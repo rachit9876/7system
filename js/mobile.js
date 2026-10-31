@@ -78,7 +78,7 @@
 
                 onAuthStateChanged(window.firebaseAuth, (user) => {
                     if (user) {
-                        sessionAuth = { username: user.email };
+                        sessionAuth = { username: user.email, uid: user.uid };
                         // Don't interfere with public viewer mode
                         if (isPublicView) return;
                         loginOverlay.classList.add('hidden');

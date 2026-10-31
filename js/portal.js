@@ -25,7 +25,7 @@ const waitForAuth = setInterval(() => {
         clearInterval(waitForAuth);
         onAuthStateChanged(window.firebaseAuth, (user) => {
             if (user) {
-                sessionAuth = { username: user.email };
+                sessionAuth = { username: user.email, uid: user.uid };
                 initPortal();
             } else {
                 window.location.replace('index.html');
@@ -158,7 +158,7 @@ const renderMindMaps = () => {
         });
         card.querySelector('.copy-link-btn').addEventListener('click', () => {
             const url = new URL('mobile.html', window.location.origin + window.location.pathname.replace('portal.html', ''));
-            url.searchParams.set('u', sessionAuth.username);
+            url.searchParams.set('u', sessionAuth.uid || window.firebaseAuth?.currentUser?.uid);
             url.searchParams.set('m', map.name);
             navigator.clipboard.writeText(url.toString()).then(() => {
                 showNotification('Success', 'Public link copied to clipboard!');
