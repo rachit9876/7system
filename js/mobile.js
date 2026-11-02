@@ -46,7 +46,8 @@
             localStorage.setItem('mindmap-theme', isDark ? 'dark' : 'light');
             updateThemeIcon(isDark);
             
-            // Re-render mermaid diagrams with new theme
+            // Re-render mermaid diagrams with the new theme
+            if (typeof mermaid === 'undefined' || !mermaid.render) return;
             mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
             document.querySelectorAll('.mermaid-code').forEach(async (el) => {
                 try {
@@ -99,6 +100,17 @@
                 });
             } else if (++authRetries > 200) {
                 clearInterval(waitForAuth);
+                // Firebase never became available (e.g. offline). Show the
+                // login overlay with a hint instead of a blank page.
+                const urlParams = new URLSearchParams(window.location.search);
+                if (!(urlParams.get('u') && urlParams.get('m'))) {
+                    loginOverlay.classList.remove('hidden');
+                    const err = document.getElementById('loginError');
+                    if (err) {
+                        err.textContent = 'Service unavailable. Check your connection and reload.';
+                        err.classList.remove('hidden');
+                    }
+                }
             }
         }, 50);
 
@@ -144,16 +156,17 @@
             sessionAuth = null;
         });
 
-        // Config marked.js to intercept mermaid blocks
         // Config marked.js to intercept mermaid blocks and github alerts
         const renderer = new marked.Renderer();
         renderer.code = function(token) {
-            const text = token.text;
-            const lang = token.lang;
+            const text = typeof token === 'object' ? token.text : token;
+            const lang = typeof token === 'object' ? token.lang : '';
             if (lang === 'mermaid') {
-                return `<div class="mermaid"><span class="mermaid-code hidden">${text}</span>Rendering diagram...</div>`;
+                return `<div class="mermaid"><span class="mermaid-code hidden">${escapeHtml(text)}</span>Rendering diagram...</div>`;
             }
-            return `<pre><code>${text}</code></pre>`;
+            // Escape HTML so code samples containing <, > and & display
+            // correctly (DOMPurify would otherwise strip them as markup).
+            return `<pre><code>${escapeHtml(text)}</code></pre>`;
         };
 
         renderer.blockquote = function(token) {
@@ -276,14 +289,25 @@
             
             container.innerHTML = nodesHtml;
             
+            if (typeof mermaid === 'undefined' || !mermaid.render) {
+                container.querySelectorAll('.mermaid').forEach(el => {
+                    el.textContent = 'Diagram unavailable (mermaid failed to load)';
+                });
+                return;
+            }
+            
             const isDark = document.documentElement.classList.contains('dark');
             mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
             
             container.querySelectorAll('.mermaid-code').forEach(async (el) => {
                 try {
-                    const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+                    const id = 'mermaid-' + Math.random().toString(36).substring(2, 11);
                     const { svg } = await mermaid.render(id, el.textContent);
-                    el.parentElement.innerHTML = svg;
+                    const wrapper = el.parentElement;
+                    wrapper.innerHTML = svg;
+                    // Keep the hidden source span so the theme toggle can
+                    // re-render the diagram later.
+                    wrapper.appendChild(el);
                 } catch(e) {
                     el.parentElement.innerHTML = '<span class="text-red-500">Diagram Error</span>';
                 }

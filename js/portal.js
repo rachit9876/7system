@@ -94,7 +94,11 @@ const loadMindMaps = async () => {
         mindMaps = result.mindmaps || [];
         renderMindMaps();
     } else {
-        mindmapsGrid.innerHTML = `<p class="text-[var(--danger)]">Failed to load mind maps: ${result.message}</p>`;
+        const p = document.createElement('p');
+        p.className = 'text-[var(--danger)]';
+        p.textContent = `Failed to load mind maps: ${result.message}`;
+        mindmapsGrid.innerHTML = '';
+        mindmapsGrid.appendChild(p);
     }
 };
 
@@ -113,7 +117,7 @@ const renderMindMaps = () => {
     }
 
     mindMaps.forEach(map => {
-        const date = new Date(map.timestamp).toLocaleDateString();
+        const date = map.timestamp ? new Date(map.timestamp).toLocaleDateString() : '—';
         
         const card = document.createElement('div');
         card.className = 'map-card';
@@ -157,11 +161,15 @@ const renderMindMaps = () => {
             window.location.href = 'index.html';
         });
         card.querySelector('.copy-link-btn').addEventListener('click', () => {
+            if (!map.isPublic) {
+                showNotification('Error', 'This mind map is private. Enable Public Access first.', 'error');
+                return;
+            }
             const url = new URL('mobile.html', window.location.origin + window.location.pathname.replace('portal.html', ''));
             url.searchParams.set('u', sessionAuth.uid || window.firebaseAuth?.currentUser?.uid);
             url.searchParams.set('m', map.name);
             navigator.clipboard.writeText(url.toString()).then(() => {
-                showNotification('Success', 'Public link copied to clipboard!');
+                showNotification('Success', 'Public link copied to clipboard!', 'success');
             }).catch(() => {
                 showNotification('Error', 'Failed to copy link', 'error');
             });
@@ -295,7 +303,7 @@ bulkDeleteBtn.addEventListener('click', async () => {
     const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
     const failCount = results.length - successCount;
     
-    showNotification('Bulk Delete Complete', `Deleted ${successCount}, Failed ${failCount}`);
+    showNotification('Bulk Delete Complete', `Deleted ${successCount}, Failed ${failCount}`, failCount > 0 ? 'info' : 'success');
     selectedMapNames.clear();
     bulkDeleteBtn.textContent = 'Delete Selected';
     await loadMindMaps();
@@ -348,6 +356,9 @@ bulkImportInput.addEventListener('change', async (e) => {
         try {
             const text = await file.text();
             const data = JSON.parse(text);
+            if (!data || !Array.isArray(data.nodes)) {
+                throw new Error('Invalid mind map file');
+            }
             const name = file.name.replace(/\.json$/i, '');
             
             if (!window.firebaseUtils) {
@@ -362,7 +373,7 @@ bulkImportInput.addEventListener('change', async (e) => {
         }
     }
     
-    showNotification('Import Complete', `Imported ${successCount}, Failed ${failCount}`);
+    showNotification('Import Complete', `Imported ${successCount}, Failed ${failCount}`, failCount > 0 ? 'info' : 'success');
     bulkImportInput.value = '';
     await loadMindMaps();
 });
@@ -393,6 +404,10 @@ renameConfirm.addEventListener('click', async () => {
         closeRenameModal();
         return;
     }
+    if (/[.$#\[\]\/]/.test(newName)) {
+        showNotification('Error', 'Name contains invalid characters (. $ # [ ] /)', 'error');
+        return;
+    }
     
     renameConfirm.disabled = true;
     if (!window.firebaseUtils) {
@@ -421,6 +436,20 @@ renameConfirm.addEventListener('click', async () => {
         renderMindMaps();
     } else {
         showNotification('Error', res.message, 'error');
+    }
+});
+
+// Close modals with the Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!renameModal.classList.contains('hidden')) closeRenameModal();
+    if (!deleteAccountModal.classList.contains('hidden')) deleteAccountModal.classList.add('hidden');
+});
+
+newMapNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        renameConfirm.click();
     }
 });
 

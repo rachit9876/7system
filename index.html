@@ -5,9 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="7System is a fast, offline-first mind mapping and note-taking tool.">
     <title>7System</title>
+    <link rel="icon" type="image/png" href="assets/mapMind.png">
     <link rel="stylesheet" href="css/styles.css">
     <script>
-        // Redirect small screens to the mobile notice page.
+        // Apply the saved theme before first paint to avoid a flash of the
+        // wrong theme. Falls back to the OS preference on first visit.
+        try {
+            var savedTheme = localStorage.getItem('mindmap-theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) {}
+
+        // Redirect small screens to the mobile feed page.
         if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
             window.location.replace('mobile.html');
         }
@@ -15,7 +25,10 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+            // Mermaid comes from a CDN; guard so a blocked CDN cannot throw.
+            if (window.mermaid) {
+                mermaid.initialize({ startOnLoad: false, theme: 'default' });
+            }
         });
     </script>
 </head>
@@ -267,7 +280,7 @@
         </div>
     </div>
 
-    <!-- Project List Modal -->
+    <!-- Confirm Modal -->
     <div id="confirmModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
         <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
             <h3 id="confirmModalTitle" class="text-lg font-semibold mb-4">Confirm</h3>
@@ -308,7 +321,7 @@
         </div>
     </div>
 
-    <script type="module" src="js/api.js"></script>
-    <script type="module" src="js/editor.js?v=9"></script>
+    <script type="module" src="js/api.js?v=10"></script>
+    <script type="module" src="js/editor.js?v=10"></script>
 </body>
 </html>

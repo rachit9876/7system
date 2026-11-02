@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Manage your 7System mind maps from the dashboard.">
     <title>Dashboard - 7System</title>
+    <link rel="icon" type="image/png" href="assets/mapMind.png">
     <link rel="stylesheet" href="css/styles.css">
 
     <link rel="stylesheet" href="css/portal.css">
+    <script>
+        // Apply the saved theme before first paint to avoid a flash of the
+        // wrong theme. Falls back to the OS preference on first visit.
+        try {
+            var savedTheme = localStorage.getItem('mindmap-theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) {}
+    </script>
 </head>
 <body class="flex flex-col h-screen">
 
@@ -168,8 +179,8 @@
     </div>
 </div>
 
-<script type="module" src="js/api.js"></script>
-<script type="module" src="js/portal.js"></script>
+<script type="module" src="js/api.js?v=10"></script>
+<script type="module" src="js/portal.js?v=10"></script>
 
 </body>
 </html>

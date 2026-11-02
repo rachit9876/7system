@@ -1,6 +1,6 @@
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-        import { showNotification } from "./shared/notifications.js";
-        // API handled by api.js
+import { showNotification } from "./shared/notifications.js";
+        // Firebase auth is imported dynamically in waitForAuth() so the editor
+        // keeps working fully offline instead of failing the whole module.
 
         let sessionAuth = null;
         let lastCloudMapName = '';
@@ -31,11 +31,15 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
             }
         } catch(e) {}
 
-        // Wait for Firebase to initialize
+        updateAuthUI();
+
+        // Wait for Firebase to initialize (loaded by api.js)
         let authRetries = 0;
         const waitForAuth = setInterval(() => {
             if (window.firebaseAuth) {
                 clearInterval(waitForAuth);
+                import("https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js")
+                    .then(({ onAuthStateChanged }) => {
                 onAuthStateChanged(window.firebaseAuth, (user) => {
                     if (user) {
                         sessionAuth = { username: user.email, uid: user.uid };
@@ -57,6 +61,10 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                     }
                     updateAuthUI();
                 });
+                    })
+                    .catch(() => {
+                        // Offline / CDN blocked: stay in local-only mode.
+                    });
             } else if (++authRetries > 200) {
                 clearInterval(waitForAuth);
             }
@@ -115,6 +123,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 lockIconUnlocked: document.getElementById('lock-icon-unlocked'),
                 lockIconLocked: document.getElementById('lock-icon-locked'),
                 gridToggle: document.getElementById('gridToggle'),
+                accountBtn: document.getElementById('accountBtn'),
+                logoutBtn: document.getElementById('logoutBtn'),
                 fileInput: document.getElementById('file-input'),
                 confirmModal: document.getElementById('confirmModal'),
                 confirmModalTitle: document.getElementById('confirmModalTitle'),
@@ -188,17 +198,20 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                         dom.confirmModalNo.removeEventListener('click', onNo);
                         dom.confirmModalCancel.removeEventListener('click', onCancel);
                         dom.confirmModal.removeEventListener('keydown', onEsc);
+                        dom.confirmModal.removeEventListener('click', onBackdrop);
                     };
 
                     const onYes = () => { cleanup(); resolve(cancelText ? 'yes' : true); };
                     const onNo = () => { cleanup(); resolve(cancelText ? 'no' : false); };
                     const onCancel = () => { cleanup(); resolve('cancel'); };
                     const onEsc = (e) => { if (e.key === 'Escape') onCancel(); };
+                    const onBackdrop = (e) => { if (e.target === dom.confirmModal) onCancel(); };
 
                     dom.confirmModalYes.addEventListener('click', onYes);
                     dom.confirmModalNo.addEventListener('click', onNo);
                     dom.confirmModalCancel.addEventListener('click', onCancel);
                     dom.confirmModal.addEventListener('keydown', onEsc);
+                    dom.confirmModal.addEventListener('click', onBackdrop);
                 });
             };
 
@@ -397,6 +410,26 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 const maxNodeId = state.nodes.reduce((max, node) => Math.max(max, node.id), 0);
                 state.nextNodeId = Math.max(Number(data.metadata?.nextNodeId) || Number(data.nextNodeId) || 1, maxNodeId + 1);
 
+                // Sanitize parent links: drop references to missing nodes and
+                // break cycles so later traversals can never hang or overflow.
+                const nodeById = new Map(state.nodes.map(n => [n.id, n]));
+                state.nodes.forEach(node => {
+                    if (node.parentId !== null && !nodeById.has(node.parentId)) {
+                        node.parentId = null;
+                    }
+                });
+                state.nodes.forEach(node => {
+                    const seen = new Set([node.id]);
+                    let ptr = node;
+                    while (ptr.parentId !== null) {
+                        if (seen.has(ptr.parentId)) { node.parentId = null; break; }
+                        seen.add(ptr.parentId);
+                        const parent = nodeById.get(ptr.parentId);
+                        if (!parent) { node.parentId = null; break; }
+                        ptr = parent;
+                    }
+                });
+
                 const settings = data.settings || data;
                 state.zoom = Number.isFinite(Number(settings.zoom)) ? Math.max(0.1, Math.min(15, Number(settings.zoom))) : 1;
                 state.pan = settings.pan && Number.isFinite(Number(settings.pan.x)) && Number.isFinite(Number(settings.pan.y))
@@ -493,10 +526,49 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 return newNode;
             };
 
+            // Iterative, cycle-safe deletion: removes a node and all of its
+            // descendants without risking a stack overflow on cyclic data.
             const deleteNode = (nodeId) => {
-                const children = state.nodes.filter(n => n.parentId === nodeId).map(n => n.id);
-                children.forEach(deleteNode);
-                state.nodes = state.nodes.filter(n => n.id !== nodeId);
+                const toDelete = new Set([nodeId]);
+                let changed = true;
+                while (changed) {
+                    changed = false;
+                    for (const n of state.nodes) {
+                        if (n.parentId !== null && toDelete.has(n.parentId) && !toDelete.has(n.id)) {
+                            toDelete.add(n.id);
+                            changed = true;
+                        }
+                    }
+                }
+                state.nodes = state.nodes.filter(n => !toDelete.has(n.id));
+            };
+
+            // True when linking targetId under sourceId would create a cycle.
+            // Connecting makes `targetId` a child of `sourceId`, which loops
+            // exactly when sourceId is already a descendant of targetId, i.e.
+            // when walking up from sourceId we reach targetId.
+            const wouldCreateCycle = (sourceId, targetId) => {
+                const seen = new Set();
+                let current = findNodeById(sourceId);
+                while (current) {
+                    if (current.id === targetId) return true;
+                    if (seen.has(current.id)) return true; // defensive: corrupt chain
+                    seen.add(current.id);
+                    current = current.parentId !== null ? findNodeById(current.parentId) : null;
+                }
+                return false;
+            };
+
+            // Only allow clicking through to http(s)/mailto links. This blocks
+            // `javascript:` and other dangerous schemes embedded in node text.
+            const isSafeUrl = (url) => {
+                if (typeof url !== 'string' || !url.trim()) return false;
+                try {
+                    const parsed = new URL(url.trim(), window.location.href);
+                    return ['http:', 'https:', 'mailto:'].includes(parsed.protocol);
+                } catch {
+                    return false;
+                }
             };
 
             const updateNodeDimensions = (node) => {
@@ -667,12 +739,14 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                     }
                     state.nodes = [];
                     state.nextNodeId = 1;
+                    // Reset the view BEFORE computing the center so the new
+                    // node actually ends up in the middle of the screen.
+                    state.pan = { x: 0, y: 0 };
+                    state.zoom = 1;
                     const center = screenToWorld(canvas.clientWidth / 2, canvas.clientHeight / 2);
                     const newNode = createNode(center.x, center.y, "Central Idea");
                     state.selectedNodeId = newNode.id;
                     state.editingNodeId = null;
-                    state.pan = { x: 0, y: 0 };
-                    state.zoom = 1;
                     lastCloudMapName = '';
                     dom.zoomIndicator.textContent = '100%';
                     hideNodeEditor();
@@ -696,16 +770,16 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 dom.redoBtn.addEventListener('click', redo);
                 dom.themeToggle.addEventListener('click', toggleTheme);
                 dom.importBtn.addEventListener('click', () => dom.fileInput.click());
-                dom.exportBtn.addEventListener('click', exportAsRXT);
+                dom.exportBtn.addEventListener('click', exportAsJSON);
                 dom.importMdBtn.addEventListener('click', pasteMarkdownTree);
                 dom.exportMdBtn.addEventListener('click', copyMarkdownTree);
                 dom.fileInput.addEventListener('change', importJSON);
                 dom.cloudSaveBtn.addEventListener('click', showCloudSaveModal);
                 dom.cloudLoadBtn.addEventListener('click', showCloudLoadModal);
                 dom.lockBtn.addEventListener('click', toggleLock);
-                document.getElementById('gridToggle').addEventListener('click', toggleGrid);
-                document.getElementById('accountBtn').addEventListener('click', showAccountModal);
-                document.getElementById('logoutBtn').addEventListener('click', async () => {
+                dom.gridToggle.addEventListener('click', toggleGrid);
+                dom.accountBtn.addEventListener('click', showAccountModal);
+                dom.logoutBtn.addEventListener('click', async () => {
                     if (window.firebaseAuth) {
                         const { signOut } = await import("https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js");
                         await signOut(window.firebaseAuth);
@@ -768,10 +842,14 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
 
                 if (state.connecting) {
                     if (clickedNodeId && clickedNodeId !== state.selectedNodeId) {
-                        const child = findNodeById(clickedNodeId);
-                        if (child) {
-                            child.parentId = state.selectedNodeId;
-                            saveState();
+                        if (wouldCreateCycle(state.selectedNodeId, clickedNodeId)) {
+                            showNotification('Error', 'Cannot connect a node to its own descendant.', 'error');
+                        } else {
+                            const child = findNodeById(clickedNodeId);
+                            if (child) {
+                                child.parentId = state.selectedNodeId;
+                                saveState();
+                            }
                         }
                     }
                     state.connecting = false;
@@ -788,7 +866,11 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                         const relativeY = worldPos.y - node.y - NODE_PADDING;
                         const clickedLink = findLinkAtPosition(node.text, relativeX, relativeY);
                         if (clickedLink) {
-                            window.open(clickedLink, '_blank');
+                            if (isSafeUrl(clickedLink)) {
+                                window.open(clickedLink, '_blank', 'noopener,noreferrer');
+                            } else {
+                                showNotification('Blocked', 'This link uses an unsupported protocol and was not opened.', 'error');
+                            }
                             return;
                         }
                     }
@@ -877,18 +959,23 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
 
             const onKeyDown = (e) => {
                 if (state.editingNodeId) return;
-                
+
                 // Ignore hotkeys when typing in an input, textarea, or contenteditable element
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
                     return;
                 }
+
+                // Ignore app hotkeys while a dialog is open so actions like
+                // undo/delete cannot fire behind a modal.
+                if (document.querySelector('div[role="dialog"]:not(.hidden)')) return;
 
                 if (e.key === 'Escape' && state.connecting) {
                     state.connecting = false;
                     requestRedraw();
                 }
 
-                if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                const key = e.key.toLowerCase();
+                if ((e.ctrlKey || e.metaKey) && key === 'o') {
                     e.preventDefault();
                     dom.fileInput.click();
                 }
@@ -896,12 +983,19 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                     if (state.selectedNodeId) {
                         deleteNode(state.selectedNodeId);
                         state.selectedNodeId = null;
+                        state.connecting = false;
                         saveState();
                         requestRedraw();
                     }
                 }
-                if ((e.ctrlKey || e.metaKey) && e.key === 'z') undo();
-                if ((e.ctrlKey || e.metaKey) && e.key === 'y') redo();
+                if ((e.ctrlKey || e.metaKey) && key === 'z') {
+                    e.preventDefault();
+                    if (e.shiftKey) redo(); else undo();
+                }
+                if ((e.ctrlKey || e.metaKey) && key === 'y') {
+                    e.preventDefault();
+                    redo();
+                }
             };
 
             const onContextMenu = (e) => {
@@ -1016,7 +1110,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 const password = document.getElementById('accountPasswordInput').value;
                 
                 if (!username || !password) {
-                    showNotification('Error', 'Please enter username and password', 'error');
+                    showNotification('Error', 'Please enter an email address and password', 'error');
                     return;
                 }
                 
@@ -1167,6 +1261,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                                 saveState();
                                 requestRedraw();
                                 document.getElementById('projectListModal').classList.add('hidden');
+                            } else {
+                                showNotification('Error', loadRes.message || 'Failed to load mind map.', 'error');
                             }
                         };
                         
@@ -1224,7 +1320,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                         theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
                         showGrid: state.showGrid
                     },
-                    nodes: state.nodes,
+                    // Strip the internal _cachedText field from cloud saves.
+                    nodes: state.nodes.map(({ _cachedText, ...rest }) => rest),
                     metadata: {
                         nextNodeId: state.nextNodeId,
                         selectedNodeId: state.selectedNodeId,
@@ -1288,16 +1385,20 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
             let md = '';
             const roots = nodes.filter(n => !n.parentId || !nodes.find(pn => pn.id === n.parentId));
             
-            const traverse = (node, depth) => {
+            const traverse = (node, depth, visited) => {
+                // Guard against cyclic data so export can never hang.
+                if (visited.has(node.id)) return;
+                visited.add(node.id);
                 const indent = '  '.repeat(depth);
                 const safeText = node.text.replace(/\n/g, '<br>');
                 md += `${indent}- ${safeText}\n`;
                 const children = nodes.filter(n => n.parentId === node.id);
                 // Sort children by Y coordinate to maintain visual order in markdown
-                children.sort((a, b) => a.y - b.y).forEach(c => traverse(c, depth + 1));
+                children.sort((a, b) => a.y - b.y).forEach(c => traverse(c, depth + 1, visited));
             };
 
-            roots.sort((a, b) => a.y - b.y).forEach(r => traverse(r, 0));
+            const visited = new Set();
+            roots.sort((a, b) => a.y - b.y).forEach(r => traverse(r, 0, visited));
             return md.trim();
         };
 
@@ -1326,10 +1427,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                     return;
                 }
                 
-                let spaces = match[1].length;
-                if (line.match(/^(\t*)/)[1].length > 0) {
-                    spaces = line.match(/^(\t*)/)[1].length * 2;
-                }
+                let spaces = match[1].replace(/\t/g, '  ').length;
                 
                 const depth = Math.floor(spaces / 2); 
                 const text = match[3].replace(/<br>/gi, '\n').trim();
@@ -1401,17 +1499,17 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
 
         const copyMarkdownTree = async () => {
             if (state.nodes.length === 0) {
-                showNotification('Mind map is empty.', 'error');
+                showNotification('Nothing to Copy', 'The mind map is empty.', 'error');
                 return;
             }
             const md = nodesToMarkdown(state.nodes);
-            const aiPrompt = "proof read this and give directd fix outoput in code block, Keep it strictly as an indented markdown list (using `-` or `*`) so I can paste it back into my tool. Note that `<br>` represents line breaks within a single node:\n\n";
+            const aiPrompt = "Proofread the markdown list below and return the corrected output in a code block. Keep it strictly as an indented markdown list (using `-` or `*`) so I can paste it back into my tool. Note that `<br>` represents line breaks within a single node:\n\n";
             const clipboardText = aiPrompt + md;
             try {
                 await navigator.clipboard.writeText(clipboardText);
-                showNotification('Markdown tree copied to clipboard!', 'success');
+                showNotification('Copied', 'Markdown tree copied to clipboard!', 'success');
             } catch (err) {
-                showNotification('Failed to copy to clipboard.', 'error');
+                showNotification('Error', 'Failed to copy to clipboard.', 'error');
             }
         };
 
@@ -1419,12 +1517,15 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
             try {
                 const text = await navigator.clipboard.readText();
                 if (!text) {
-                    showNotification('Clipboard is empty.', 'error');
+                    showNotification('Clipboard Empty', 'Clipboard is empty.', 'error');
                     return;
                 }
                 
-                const centerX = -state.pan.x + canvas.width / 2 / state.zoom;
-                const centerY = -state.pan.y + canvas.height / 2 / state.zoom;
+                // Use CSS-pixel dimensions (clientWidth) so the pasted tree is
+                // centered correctly on HiDPI screens where canvas.width is
+                // scaled by the device pixel ratio.
+                const centerX = (canvas.clientWidth / 2 - state.pan.x) / state.zoom;
+                const centerY = (canvas.clientHeight / 2 - state.pan.y) / state.zoom;
                 
                 const result = markdownToNodes(text, centerX, centerY);
                 if (result.nodes.length > 0) {
@@ -1453,19 +1554,20 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                     state.nextNodeId = result.nextId;
                     saveState();
                     requestRedraw();
-                    showNotification(`Pasted ${result.nodes.length} nodes!`, 'success');
+                    showNotification('Pasted', `Pasted ${result.nodes.length} nodes!`, 'success');
                 } else {
-                    showNotification('No valid markdown list found in clipboard.', 'error');
+                    showNotification('Error', 'No valid markdown list found in clipboard.', 'error');
                 }
             } catch (err) {
-                showNotification('Failed to read clipboard.', 'error');
+                showNotification('Error', 'Failed to read clipboard.', 'error');
             }
         };
 
-        const exportAsRXT = () => {
+        const exportAsJSON = () => {
 
                 const now = new Date();
-                const timestamp = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const pad = (n) => String(n).padStart(2, '0');
+                const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
                 
                 const exportData = {
                     timestamp: now.toISOString(),
@@ -1475,7 +1577,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                         theme: state.isDark ? 'dark' : 'light',
                         showGrid: state.showGrid
                     },
-                    nodes: state.nodes,
+                    // Strip the internal _cachedText field from exported data.
+                    nodes: state.nodes.map(({ _cachedText, ...rest }) => rest),
                     preview: {
                         canvasWidth: canvas.clientWidth,
                         canvasHeight: canvas.clientHeight,
@@ -1557,6 +1660,11 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
             const mermaidCache = new Map();
             let mermaidIdCounter = 0;
             const renderMermaidToImage = (code) => {
+                // Mermaid is loaded from a CDN; degrade gracefully when it is
+                // unavailable (offline) instead of throwing during rendering.
+                if (typeof mermaid === 'undefined' || !mermaid.render) {
+                    return { loading: false, img: null, error: true };
+                }
                 const isDark = document.documentElement.classList.contains('dark');
                 const theme = isDark ? 'dark' : 'default';
                 const cacheKey = `${theme}-${code}`;
@@ -2489,6 +2597,16 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                         .then(r => r.json())
                         .then(data => {
                             applyProjectData(data);
+                            // A previously saved theme preference takes
+                            // precedence over the theme bundled with the sample.
+                            const savedTheme = localStorage.getItem('mindmap-theme');
+                            if (savedTheme === 'dark') {
+                                document.documentElement.classList.add('dark');
+                                state.isDark = true;
+                            } else if (savedTheme === 'light') {
+                                document.documentElement.classList.remove('dark');
+                                state.isDark = false;
+                            }
                             const savedGrid = localStorage.getItem('mindmap-grid');
                             if (savedGrid) state.showGrid = savedGrid === 'on';
                             syncToggleControls();
@@ -2550,14 +2668,18 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 return;
             }
             
-            e.preventDefault();
             const text = (e.clipboardData || window.clipboardData).getData('text');
-            if (!text || !text.split('\n').some(l => l.trim().startsWith('- ') || l.trim().startsWith('* '))) {
+            // Accept every bullet style the markdown parser understands.
+            if (!text || !text.split('\n').some(l => /^[-*+•]\s/.test(l.trim()))) {
                 return;
             }
+            e.preventDefault();
             
-            const mouseX = (window.lastMouseX || canvas.width / 2) - state.pan.x;
-            const mouseY = (window.lastMouseY || canvas.height / 2) - state.pan.y;
+            // Place the pasted tree at the last mouse position (world coords),
+            // falling back to the center of the viewport.
+            const fallback = screenToWorld(canvas.clientWidth / 2, canvas.clientHeight / 2);
+            const mouseX = window.lastMousePos ? window.lastMousePos.x : fallback.x;
+            const mouseY = window.lastMousePos ? window.lastMousePos.y : fallback.y;
             
             const result = markdownToNodes(text, mouseX, mouseY);
             if (result.nodes.length > 0) {
@@ -2565,13 +2687,13 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/fi
                 state.nextNodeId = result.nextId;
                 saveState();
                 requestRedraw();
-                showNotification(`Pasted ${result.nodes.length} nodes from clipboard!`, 'success');
+                showNotification('Pasted', `Pasted ${result.nodes.length} nodes from clipboard!`, 'success');
             }
         });
         
         canvas.addEventListener('mousemove', (e) => {
-            window.lastMouseX = (e.clientX - state.pan.x) / state.zoom;
-            window.lastMouseY = (e.clientY - state.pan.y) / state.zoom;
+            const pos = getMousePos(e);
+            window.lastMousePos = screenToWorld(pos.x, pos.y);
         });
 
         });

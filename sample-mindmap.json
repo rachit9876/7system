@@ -12,13 +12,12 @@
   "nodes": [
     {
       "id": 1,
-      "text": "# Welcome to MapMind\nA powerful `markdown` mind mapping tool",
+      "text": "# Welcome to 7System\nA powerful `markdown` mind mapping tool",
       "x": 645.5753818859833,
       "y": 77.14525520208022,
       "width": 358.53125,
       "height": 110.8,
-      "parentId": null,
-      "_cachedText": "# Welcome to MapMind\nA powerful `markdown` mind mapping tool"
+      "parentId": null
     },
     {
       "id": 2,
@@ -27,8 +26,7 @@
       "y": 157.38807189765632,
       "width": 292.05078125,
       "height": 146.60000000000002,
-      "parentId": 1,
-      "_cachedText": "## Advanced Markdown\n**Bold text** and *italic text*\n`code snippets`\n~~strikethrough~~"
+      "parentId": 1
     },
     {
       "id": 3,
@@ -37,8 +35,7 @@
       "y": 212.65053559795876,
       "width": 245.9091796875,
       "height": 230.20000000000005,
-      "parentId": 1,
-      "_cachedText": "### Lists & Organization\n- Bullet point 1\n- Bullet point 2\n1. Numbered item\n2. Another item\n\n---\nHorizontal rules supported!"
+      "parentId": 1
     },
     {
       "id": 4,
@@ -47,8 +44,7 @@
       "y": 409.636828443887,
       "width": 220.5390625,
       "height": 75.2,
-      "parentId": 2,
-      "_cachedText": "> Blockquote example\n> Multiple lines supported"
+      "parentId": 2
     },
     {
       "id": 5,
@@ -57,8 +53,7 @@
       "y": 316.31512690690585,
       "width": 346.4453125,
       "height": 210.2,
-      "parentId": 2,
-      "_cachedText": "### Links & Images\nExplicit Link: [Visit GitHub](https://github.com/rachit9876)\n![Logo](https://dr-fast-upload.pages.dev/public/d99bf38b2c8f.webp) ![Logo](https://dr-fast-upload.pages.dev/public/d99bf38b2c8f.webp)"
+      "parentId": 2
     },
     {
       "id": 6,
@@ -67,8 +62,7 @@
       "y": 639.6302538138117,
       "width": 225.53125,
       "height": 97.6,
-      "parentId": 3,
-      "_cachedText": "```javascript\n// Code blocks\nconst map = new Map();\nconsole.log(map);\n```"
+      "parentId": 3
     },
     {
       "id": 7,
@@ -77,8 +71,7 @@
       "y": 317.007659919732,
       "width": 224.4453125,
       "height": 236.27999999999997,
-      "parentId": 1,
-      "_cachedText": "### New Data Tables!\n| Feature | Supported? |\n| :--- | :---: | \n| **Tables** | Yes |\n| *Auto Links* | Yes |\n| ~~Bugs~~ | No |"
+      "parentId": 1
     },
     {
       "id": 8,
@@ -87,8 +80,7 @@
       "y": 544.9403333944792,
       "width": 352,
       "height": 287.8,
-      "parentId": 1,
-      "_cachedText": "### Flowcharts & Diagrams\n```mermaid\ngraph TD\n  A[Start] --> B{Good?}\n  B -->|Yes| C[Enjoy!]\n  B -->|No| D[Fix it]\n```"
+      "parentId": 1
     },
     {
       "id": 9,
@@ -97,8 +89,7 @@
       "y": 549.7969185405823,
       "width": 267.5869140625,
       "height": 163.00000000000003,
-      "parentId": 3,
-      "_cachedText": "### Task Lists & Hierarchy\n- [x] Implemented features\n- [ ] Future ideas\n  - Nested lists\n    - Different bullets"
+      "parentId": 3
     },
     {
       "id": 10,
@@ -107,8 +98,7 @@
       "y": 568.452685943334,
       "width": 312.1328125,
       "height": 142.39999999999998,
-      "parentId": 2,
-      "_cachedText": "> [!TIP]\n> Use GitHub alerts to highlight things!\n\n> [!WARNING]\n> They catch the eye easily."
+      "parentId": 2
     },
     {
       "id": 11,
@@ -117,8 +107,7 @@
       "y": -48.56900390792016,
       "width": 477.015625,
       "height": 60.8,
-      "parentId": null,
-      "_cachedText": "# Double Tap Any Node To Edit"
+      "parentId": null
     }
   ],
   "preview": {

@@ -2,16 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="View your 7System mind maps on the go.">
     <title>7System - Mobile Feed</title>
+    <link rel="icon" type="image/png" href="assets/mapMind.png">
     <link rel="stylesheet" href="css/styles.css">
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Pin library versions so future major releases of marked cannot break
+         the token-based renderer API used in mobile.js. -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
-        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        // Mermaid comes from a CDN; guard so a blocked CDN cannot throw.
+        if (window.mermaid) {
+            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        }
     </script>
     <link rel="stylesheet" href="css/mobile.css">
 </head>
@@ -50,7 +56,7 @@
     </div>
 
     <!-- We define the API and Logic at the bottom -->
-    <script type="module" src="js/api.js"></script>
-    <script type="module" src="js/mobile.js"></script>
+    <script type="module" src="js/api.js?v=10"></script>
+    <script type="module" src="js/mobile.js?v=10"></script>
 </body>
 </html>

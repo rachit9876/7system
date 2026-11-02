@@ -37,6 +37,8 @@ const firebaseUtils = {
     },
     
     getMindMapsList: async (username, password) => {
+        // username/password are kept for API compatibility; access is always
+        // scoped to the currently authenticated Firebase user (uid).
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         try {
             const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}`));
@@ -45,9 +47,9 @@ const firebaseUtils = {
                 const mindmaps = Object.keys(data).map(key => ({
                     key,
                     name: data[key].name || key,
-                    timestamp: data[key].timestamp,
+                    timestamp: data[key].timestamp || 0,
                     isPublic: data[key].isPublic || false
-                })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 return { success: true, mindmaps };
             }
             return { success: true, mindmaps: [] };
@@ -59,7 +61,8 @@ const firebaseUtils = {
     loadMindMap: async (username, password, mindmapName, mindmapKey = mindmapName) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         try {
-            const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`));
+            // Use the database key (which may differ from the display name).
+            const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapKey}`));
             const data = snapshot.val();
             if (data) return { success: true, data: data.data };
             return { success: false, message: 'Mind map not found' };
@@ -85,8 +88,8 @@ const firebaseUtils = {
     deleteMindMap: async (email, password, mindmapName, mindmapKey = mindmapName) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         try {
-            await remove(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`));
-            await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`));
+            await remove(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapKey}`));
+            await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapKey}`));
             return { success: true, message: 'Deleted successfully' };
         } catch (error) {
             return { success: false, message: error.message };
@@ -95,6 +98,9 @@ const firebaseUtils = {
 
     renameMindMap: async (email, password, oldName, newName) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        if (/[.$#\[\]\/]/.test(newName)) {
+            return { success: false, message: 'Name contains invalid characters (. $ # [ ] /)' };
+        }
         try {
             const oldRef = ref(db, `mindmaps/${auth.currentUser.uid}/${oldName}`);
             const snapshot = await get(oldRef);
@@ -193,7 +199,7 @@ const firebaseUtils = {
                 const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`));
                 await set(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`), snapshot.val());
             } else {
-            await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`));
+                await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`));
             }
             return { success: true, message: `Mind map is now ${isPublic ? 'public' : 'private'}` };
         } catch (error) {
