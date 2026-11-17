@@ -138,7 +138,7 @@ if (prevPageBtn) {
 
 if (nextPageBtn) {
     nextPageBtn.addEventListener('click', () => {
-        const totalPages = Math.ceil(mindMaps.length / PAGE_SIZE);
+        const totalPages = Math.ceil(getFilteredMaps().length / PAGE_SIZE);
         if (currentPage < totalPages) {
             currentPage++;
             renderMindMaps();
@@ -153,7 +153,7 @@ const loadMindMaps = async () => {
         mindmapsGrid.innerHTML = `<p class="text-[var(--danger)]">Service unavailable.</p>`;
         return;
     }
-    const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
+    const result = await window.firebaseUtils.getMindMapsList();
     
     if (result.success) {
         mindMaps = result.mindmaps || [];
@@ -270,17 +270,17 @@ const renderMindMaps = () => {
             }
             
             toggleBtn.classList.toggle('active');
-            toggleBtn.setAttribute('aria-checked', makePublic);
+            toggleBtn.setAttribute('aria-checked', String(makePublic));
             toggleBtn.classList.add('disabled', 'opacity-50', 'pointer-events-none');
             
             if (!window.firebaseUtils) {
                 showNotification('Error', 'Service unavailable', 'error');
                 toggleBtn.classList.remove('disabled', 'opacity-50', 'pointer-events-none');
                 toggleBtn.classList.toggle('active');
-                toggleBtn.setAttribute('aria-checked', !makePublic);
+                toggleBtn.setAttribute('aria-checked', String(!makePublic));
                 return;
             }
-            const res = await window.firebaseUtils.togglePublicMindMap(sessionAuth.username, null, map.name, makePublic);
+            const res = await window.firebaseUtils.togglePublicMindMap(map.name, makePublic);
             
             toggleBtn.classList.remove('disabled', 'opacity-50', 'pointer-events-none');
             
@@ -290,7 +290,7 @@ const renderMindMaps = () => {
                 renderMindMaps();
             } else {
                 toggleBtn.classList.toggle('active');
-                toggleBtn.setAttribute('aria-checked', !makePublic);
+                toggleBtn.setAttribute('aria-checked', String(!makePublic));
                 showNotification('Error', res.message, 'error');
             }
         };
@@ -346,7 +346,7 @@ const singleDelete = async (name) => {
         showNotification('Error', 'Service unavailable', 'error');
         return;
     }
-    const result = await window.firebaseUtils.deleteMindMap(sessionAuth.username, null, name);
+    const result = await window.firebaseUtils.deleteMindMap(name);
     if (result.success) {
         showNotification('Success', `Deleted ${name}`);
         selectedMapNames.delete(name);
@@ -388,7 +388,7 @@ bulkDeleteBtn.addEventListener('click', async () => {
     }
     const results = await Promise.allSettled(
         [...selectedMapNames].map(name => 
-            window.firebaseUtils.deleteMindMap(sessionAuth.username, null, name)
+            window.firebaseUtils.deleteMindMap(name)
         )
     );
     
@@ -412,12 +412,12 @@ bulkExportBtn.addEventListener('click', async () => {
         return;
     }
     try {
-        const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
+        const result = await window.firebaseUtils.getMindMapsList();
         if (result.success && result.mindmaps) {
             let count = 0;
             for (const map of result.mindmaps) {
                 if (selectedMapNames.has(map.name)) {
-                    const mapRes = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, map.name);
+                    const mapRes = await window.firebaseUtils.loadMindMap(map.key);
                     if (mapRes.success) {
                         const exportPayload = mapRes.data && Array.isArray(mapRes.data.nodes)
                             ? { markdown: nodesToMarkdown(mapRes.data.nodes) }
@@ -464,7 +464,7 @@ bulkImportInput.addEventListener('change', async (e) => {
                 showNotification('Error', 'Service unavailable', 'error');
                 return;
             }
-            const res = await window.firebaseUtils.saveMindMap(sessionAuth.username, null, name, data);
+            const res = await window.firebaseUtils.saveMindMap(name, data);
             if (res.success) successCount++;
             else failCount++;
         } catch (err) {
@@ -514,7 +514,7 @@ renameConfirm.addEventListener('click', async () => {
         renameConfirm.disabled = false;
         return;
     }
-    const res = await window.firebaseUtils.renameMindMap(sessionAuth.username, null, renamingMapName, newName);
+    const res = await window.firebaseUtils.renameMindMap(renamingMapName, newName);
     renameConfirm.disabled = false;
     
     if (res.success) {
@@ -574,7 +574,7 @@ document.getElementById('changePasswordBtn').addEventListener('click', async () 
         btn.disabled = false;
         return;
     }
-    const res = await window.firebaseUtils.changePassword(sessionAuth.username, null, oldPassword, newPassword);
+    const res = await window.firebaseUtils.changePassword(oldPassword, newPassword);
     btn.disabled = false;
     
     if (res.success) {
@@ -615,7 +615,7 @@ deleteAccountConfirm.addEventListener('click', async () => {
         deleteAccountConfirm.disabled = false;
         return;
     }
-    const res = await window.firebaseUtils.deleteAccount(sessionAuth.username, pwd);
+    const res = await window.firebaseUtils.deleteAccount(pwd);
     deleteAccountConfirm.disabled = false;
     
     if (res.success) {

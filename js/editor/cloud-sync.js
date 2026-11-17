@@ -183,7 +183,7 @@ export function initCloudSync({ state, dom, showConfirm, applyProjectData, saveS
             return;
         }
 
-        const result = await window.firebaseUtils.saveMindMap(sessionAuth.username, null, mapName, dataPayload);
+        const result = await window.firebaseUtils.saveMindMap(mapName, dataPayload);
         if (btn) {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -224,7 +224,7 @@ export function initCloudSync({ state, dom, showConfirm, applyProjectData, saveS
             showNotification('Error', 'Service unavailable', 'error');
             return;
         }
-        const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
+        const result = await window.firebaseUtils.getMindMapsList();
         const existingMindMaps = result.success ? result.mindmaps : [];
 
         if (existingMindMaps.length > 0 && listContainer && listEl) {
@@ -308,7 +308,7 @@ export function initCloudSync({ state, dom, showConfirm, applyProjectData, saveS
                 const leftDiv = document.createElement('div');
                 leftDiv.className = 'flex-1';
                 leftDiv.onclick = async () => {
-                    const loadRes = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, mindmap.name, mindmap.key);
+                    const loadRes = await window.firebaseUtils.loadMindMap(mindmap.key);
                     if (loadRes.success && loadRes.data) {
                         lastCloudMapName = mindmap.name;
                         applyProjectData(loadRes.data);
@@ -338,10 +338,10 @@ export function initCloudSync({ state, dom, showConfirm, applyProjectData, saveS
                     e.stopPropagation();
                     const confirmed = await showConfirm(`Delete "${mindmap.name}"?`);
                     if (confirmed) {
-                        const result = await window.firebaseUtils.deleteMindMap(sessionAuth.username, null, mindmap.name, mindmap.key);
+                        const result = await window.firebaseUtils.deleteMindMap(mindmap.key);
                         if (result.success) {
                             showNotification('Success', result.message, 'success');
-                            const refreshResult = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
+                            const refreshResult = await window.firebaseUtils.getMindMapsList();
                             if (refreshResult.success) {
                                 showProjectListModal(refreshResult.mindmaps);
                             }
@@ -365,7 +365,7 @@ export function initCloudSync({ state, dom, showConfirm, applyProjectData, saveS
             showNotification('Error', 'Service unavailable', 'error');
             return;
         }
-        const result = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
+        const result = await window.firebaseUtils.getMindMapsList();
         if (result.success) {
             showProjectListModal(result.mindmaps);
         } else {
@@ -382,13 +382,13 @@ export function initCloudSync({ state, dom, showConfirm, applyProjectData, saveS
         loadProjectList();
     };
 
-    const loadFromCloud = async (username, password, mindmapName, mindmapKey = mindmapName) => {
+    const loadFromCloud = async (mindmapName) => {
         if (!window.firebaseUtils) {
             showNotification('Error', 'Service unavailable', 'error');
             return;
         }
         showNotification('Info', 'Loading mind map...', 'info');
-        const result = await window.firebaseUtils.loadMindMap(username, password, mindmapName, mindmapKey);
+        const result = await window.firebaseUtils.loadMindMap(mindmapName);
         if (result.success) {
             try {
                 lastCloudMapName = mindmapName;
@@ -423,7 +423,7 @@ export function initCloudSync({ state, dom, showConfirm, applyProjectData, saveS
     if (typeof window !== 'undefined') {
         window.openCloudMap = (mapName) => {
             if (sessionAuth) {
-                loadFromCloud(sessionAuth.username, null, mapName);
+                loadFromCloud(mapName);
             }
         };
     }

@@ -1,7 +1,9 @@
 /**
  * 7System - Tree Layout Engine
  * Contour-packed Left-to-Right horizontal tree layout (Reingold-Tilford style).
- * Aligns depth columns without overlapping subtrees and keeps parents vertically centered on their children.
+ * Aligns depth columns without overlapping subtrees and keeps parents vertically
+ * centered on their children. All lookups are Map-based: positioning a forest
+ * of n nodes costs O(n), not the O(n^2) of scanning `nodes.find` per visit.
  */
 
 export function layoutNodeTree(nodes, startX = 100, startY = 100, options = {}) {
@@ -10,8 +12,8 @@ export function layoutNodeTree(nodes, startX = 100, startY = 100, options = {}) 
     const H_GAP = options.hGap ?? 48;
     const V_GAP = options.vGap ?? 24;
 
-    const nodeIds = new Set(nodes.map(n => n.id));
-    const roots = nodes.filter(n => !n.parentId || !nodeIds.has(n.parentId));
+    const nodeById = new Map(nodes.map(n => [n.id, n]));
+    const roots = nodes.filter(n => !n.parentId || !nodeById.has(n.parentId));
     if (roots.length === 0) return;
 
     const childrenMap = new Map();
@@ -29,16 +31,17 @@ export function layoutNodeTree(nodes, startX = 100, startY = 100, options = {}) 
 
     // Compute max node width per depth level so columns align cleanly without horizontal overlap
     const levelWidths = new Map();
-    const measureLevels = (id, depth, seen = new Set()) => {
+    const measureLevels = (id, depth, seen) => {
         if (seen.has(id)) return;
         seen.add(id);
-        const n = nodes.find(x => x.id === id);
+        const n = nodeById.get(id);
         if (!n) return;
         const { w } = getSize(n);
         levelWidths.set(depth, Math.max(levelWidths.get(depth) || 0, w));
         (childrenMap.get(id) || []).forEach(c => measureLevels(c.id, depth + 1, seen));
     };
-    roots.forEach(r => measureLevels(r.id, 0));
+    const levelSeen = new Set();
+    roots.forEach(r => measureLevels(r.id, 0, levelSeen));
 
     const levelX = new Map();
     let accX = startX;
@@ -49,10 +52,13 @@ export function layoutNodeTree(nodes, startX = 100, startY = 100, options = {}) 
     }
 
     // Contour-packed Left-to-Right layout (Reingold-Tilford contour algorithm)
-    const buildSubtree = (id, seen = new Set()) => {
+    // `seen` is passed by value (a fresh Set per branch) so sibling subtrees
+    // can never mark each other's nodes as visited.
+    const buildSubtree = (id, seen) => {
         if (seen.has(id)) return { relY: new Map(), top: [], bottom: [] };
         seen.add(id);
-        const n = nodes.find(x => x.id === id);
+        const n = nodeById.get(id);
+        if (!n) return { relY: new Map(), top: [], bottom: [] };
         const { h } = getSize(n);
         const ch = (childrenMap.get(id) || []).filter(c => !seen.has(c.id));
 
@@ -106,10 +112,10 @@ export function layoutNodeTree(nodes, startX = 100, startY = 100, options = {}) 
         };
     };
 
-    const assignPositions = (id, depth, offsetY, relY, seen = new Set()) => {
+    const assignPositions = (id, depth, offsetY, relY, seen) => {
         if (seen.has(id)) return;
         seen.add(id);
-        const n = nodes.find(x => x.id === id);
+        const n = nodeById.get(id);
         if (!n) return;
         n.x = levelX.get(depth) ?? startX;
         n.y = offsetY + (relY.get(id) || 0);
@@ -118,11 +124,11 @@ export function layoutNodeTree(nodes, startX = 100, startY = 100, options = {}) 
 
     let curRootY = startY;
     roots.forEach(r => {
-        const tree = buildSubtree(r.id);
+        const tree = buildSubtree(r.id, new Set());
         const minTop = Math.min(...tree.top);
         const maxBottom = Math.max(...tree.bottom);
         const shiftY = curRootY - minTop;
-        assignPositions(r.id, 0, shiftY, tree.relY);
+        assignPositions(r.id, 0, shiftY, tree.relY, new Set());
         curRootY += (maxBottom - minTop) + V_GAP * 2;
     });
 }

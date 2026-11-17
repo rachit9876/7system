@@ -1,5 +1,5 @@
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-        import { initTheme } from "./shared/theme.js";
+        import { initTheme, configureMermaid } from "./shared/theme.js";
 
 
 
@@ -171,7 +171,7 @@
                 feedContainer.innerHTML = `<p class="text-center mt-10 text-red-500">Service unavailable.</p>`;
                 return;
             }
-            const listResult = await window.firebaseUtils.getMindMapsList(sessionAuth.username, null);
+            const listResult = await window.firebaseUtils.getMindMapsList();
             
             if (!listResult.success) {
                 feedContainer.innerHTML = `<p class="text-center mt-10 text-red-500">Failed to load feed.</p>`;
@@ -230,7 +230,7 @@
                             isLoading = false;
                             return;
                         }
-                        const mapResult = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, mapInfo.name, mapInfo.key);
+                        const mapResult = await window.firebaseUtils.loadMindMap(mapInfo.key);
                         if (mapResult.success && mapResult.data && mapResult.data.nodes) {
                             renderNodes(body, mapResult.data.nodes);
                             isLoaded = true;
@@ -268,9 +268,10 @@
                 });
                 return;
             }
-            
-            const isDark = document.documentElement.classList.contains('dark');
-            mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+
+            // Route Mermaid theming through the shared module so diagrams
+            // always match the applied dark/light mode.
+            configureMermaid(document.documentElement.classList.contains('dark'));
             
             container.querySelectorAll('.mermaid-code').forEach(async (el) => {
                 try {

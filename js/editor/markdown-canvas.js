@@ -21,6 +21,8 @@ export function setContentUpdateCallback(cb) {
 }
 
 export function clearMarkdownCaches() {
+    // Re-render Mermaid diagrams when the theme flips: cached images
+    // are baked with the previous palette and cannot be recolored.
     mermaidCache.clear();
 }
 
@@ -365,15 +367,15 @@ export const parseMarkdown = (text) => {
             if (alertMatch) {
                 const alertType = alertMatch[1].toUpperCase();
                 const icon = { NOTE: 'ℹ️', TIP: '💡', IMPORTANT: '🔥', WARNING: '⚠️', CAUTION: '🛑' }[alertType];
-                appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}`, { blockquote: level, alertType });
+                appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}▎ `, { blockquote: level, alertType });
                 parts.push(...parseInlineMarkdown(`${icon} ${alertType}`, { blockquote: level, alertType, bold: true }));
             } else {
                 const isAlertText = parts.length > 0 && parts[parts.length - 1].alertType;
                 if (isAlertText) {
-                    appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}  `, { blockquote: level, alertType: parts[parts.length - 1].alertType });
+                    appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}▎   `, { blockquote: level, alertType: parts[parts.length - 1].alertType });
                     parts.push(...parseInlineMarkdown(quoteText, { blockquote: level, alertType: parts[parts.length - 1].alertType }));
                 } else {
-                    appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}`, { blockquote: level });
+                    appendInlinePart(parts, `${blockquoteMatch[1]}${'  '.repeat(level - 1)}▎ `, { blockquote: level });
                     parts.push(...parseInlineMarkdown(quoteText, { blockquote: level }));
                 }
             }
@@ -466,6 +468,38 @@ export const getWrappedParts = (ctx, text, maxWidth = 350) => {
     return wrappedParts;
 };
 
+const headingFontFor = (heading) => `700 ${[24, 20, 18, 16, 14, 12][heading - 1] || 12}px sans-serif`;
+const inlineFontFor = (cp) => cp.code
+    ? `500 ${FONT_SIZE}px monospace`
+    : `${cp.italic ? 'italic ' : ''}${cp.bold ? '700' : '500'} ${FONT_SIZE}px sans-serif`;
+
+// Table geometry (column widths, overall size) is identical across the
+// measure / draw / hit-test passes, so it is computed once and cached on
+// the parsed part. A ctx.save/restore pair keeps the probing caller's font
+// untouched while cells are measured.
+export const measureTable = (ctx, part) => {
+    ctx.save();
+    const colWidths = [];
+    const measureCells = (cells) => {
+        cells.forEach((cellParts, colIndex) => {
+            let cellW = 0;
+            cellParts.forEach(cp => {
+                ctx.font = cp.heading ? headingFontFor(cp.heading) : inlineFontFor(cp);
+                cellW += ctx.measureText(cp.text).width;
+            });
+            colWidths[colIndex] = Math.max(colWidths[colIndex] || 0, cellW + 16);
+        });
+    };
+    measureCells(part.headers);
+    part.rows.forEach(r => measureCells(r));
+    ctx.restore();
+
+    part.colWidths = colWidths;
+    part.tableWidth = colWidths.reduce((sum, w) => sum + w, 0) + (colWidths.length + 1) * 1;
+    part.tableHeight = (1 + part.rows.length) * (FONT_SIZE * 1.4 + 16);
+    return part;
+};
+
 export const measureMarkdownText = (ctx, text) => {
     const parts = getWrappedParts(ctx, text);
     let maxWidth = 0;
@@ -489,30 +523,9 @@ export const measureMarkdownText = (ctx, text) => {
             if (currentLineWidth === 0 && totalHeight > 0) {
                 totalHeight += FONT_SIZE * 0.8;
             }
-            ctx.save();
-            const colWidths = [];
-            const measureCells = (cells) => {
-                cells.forEach((cellParts, colIndex) => {
-                    let cellW = 0;
-                    cellParts.forEach(cp => {
-                        if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
-                        else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
-                        cellW += ctx.measureText(cp.text).width;
-                    });
-                    colWidths[colIndex] = Math.max(colWidths[colIndex] || 0, cellW + 16);
-                });
-            };
-            measureCells(part.headers);
-            part.rows.forEach(r => measureCells(r));
-            ctx.restore();
+            measureTable(ctx, part);
 
-            const tableWidth = colWidths.reduce((sum, w) => sum + w, 0) + (colWidths.length + 1) * 1;
-            const tableHeight = (1 + part.rows.length) * (lineHeight + 16);
-
-            part.colWidths = colWidths;
-            part.tableWidth = tableWidth;
-            part.tableHeight = tableHeight;
-
+            const { tableWidth, tableHeight } = part;
             maxWidth = Math.max(maxWidth, currentLineWidth + tableWidth);
             currentLineWidth += tableWidth;
             currentLineHeight = Math.max(currentLineHeight, tableHeight + FONT_SIZE);
@@ -585,23 +598,8 @@ export const renderMarkdownText = (ctx, text, x, y) => {
             if (currentX === x && currentY > y + FONT_SIZE) {
                 currentY += FONT_SIZE * 0.8;
             }
-            ctx.save();
-            const colWidths = [];
-            const measureCells = (cells) => {
-                cells.forEach((cellParts, colIndex) => {
-                    let cellW = 0;
-                    cellParts.forEach(cp => {
-                        if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
-                        else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
-                        cellW += ctx.measureText(cp.text).width;
-                    });
-                    colWidths[colIndex] = Math.max(colWidths[colIndex] || 0, cellW + 16);
-                });
-            };
-            measureCells(part.headers);
-            part.rows.forEach(r => measureCells(r));
-            const tableWidth = colWidths.reduce((sum, w) => sum + w, 0) + (colWidths.length + 1) * 1;
-            const tableHeight = (1 + part.rows.length) * (lineHeight + 16);
+            measureTable(ctx, part);
+            const { colWidths, tableWidth, tableHeight } = part;
 
             ctx.strokeStyle = getCachedVar('--node-border') || '#d1d5db';
             ctx.lineWidth = 1;
@@ -635,8 +633,7 @@ export const renderMarkdownText = (ctx, text, x, y) => {
                     let cellW = 0;
                     ctx.save();
                     cellParts.forEach(cp => {
-                        if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
-                        else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                        ctx.font = cp.heading ? headingFontFor(cp.heading) : inlineFontFor(cp);
                         cellW += ctx.measureText(cp.text).width;
                     });
 
@@ -648,8 +645,7 @@ export const renderMarkdownText = (ctx, text, x, y) => {
                     let textY = startY + rowHeight / 2 + FONT_SIZE * 0.3;
 
                     cellParts.forEach(cp => {
-                        if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
-                        else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                        ctx.font = cp.heading ? headingFontFor(cp.heading) : inlineFontFor(cp);
 
                         ctx.fillStyle = getCachedVar('--node-text');
                         if (cp.code) { ctx.font = `500 ${FONT_SIZE}px monospace`; ctx.fillStyle = '#22c55e'; }
@@ -795,19 +791,7 @@ export const renderMarkdownText = (ctx, text, x, y) => {
     });
 };
 
-export const findLinkAtPosition = (arg1, arg2, arg3, arg4) => {
-    let ctx, text, x, y;
-    if (typeof arg1 === 'string') {
-        text = arg1;
-        x = arg2;
-        y = arg3;
-        ctx = (typeof document !== 'undefined') ? (document.getElementById('mindMapCanvas')?.getContext('2d') || null) : null;
-    } else {
-        ctx = arg1;
-        text = arg2;
-        x = arg3;
-        y = arg4;
-    }
+export const findLinkAtPosition = (ctx, text, x, y) => {
     if (!ctx) return null;
     const parts = getWrappedParts(ctx, text);
     let currentX = 0;
@@ -815,6 +799,7 @@ export const findLinkAtPosition = (arg1, arg2, arg3, arg4) => {
     const lineHeight = FONT_SIZE * 1.4;
     let currentLineHeight = lineHeight;
 
+    ctx.save();
     ctx.font = `500 ${FONT_SIZE}px sans-serif`;
 
     for (const part of parts) {
@@ -832,26 +817,18 @@ export const findLinkAtPosition = (arg1, arg2, arg3, arg4) => {
             continue;
         }
 
+        if (part.mermaid) {
+            // Diagrams occupy the rest of the line; they never contain links.
+            currentX = 0;
+            continue;
+        }
+
         if (part.table) {
-            if (currentX === 0 && currentY > y + FONT_SIZE) {
+            if (currentX === 0 && currentY > FONT_SIZE) {
                 currentY += FONT_SIZE * 0.8;
             }
-            const colWidths = [];
-            const measureCells = (cells) => {
-                cells.forEach((cellParts, colIndex) => {
-                    let cellW = 0;
-                    cellParts.forEach(cp => {
-                        if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
-                        else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
-                        cellW += ctx.measureText(cp.text).width;
-                    });
-                    colWidths[colIndex] = Math.max(colWidths[colIndex] || 0, cellW + 16);
-                });
-            };
-            measureCells(part.headers);
-            part.rows.forEach(r => measureCells(r));
-            const tableWidth = colWidths.reduce((sum, w) => sum + w, 0) + (colWidths.length + 1) * 1;
-            const tableHeight = (1 + part.rows.length) * (lineHeight + 16);
+            measureTable(ctx, part);
+            const { colWidths, tableHeight } = part;
 
             let startY = currentY - lineHeight * 0.8;
             let rowHeight = lineHeight + 16;
@@ -862,10 +839,8 @@ export const findLinkAtPosition = (arg1, arg2, arg3, arg4) => {
                 cells.forEach((cellParts, colIndex) => {
                     const w = colWidths[colIndex];
                     let cellW = 0;
-                    ctx.save();
                     cellParts.forEach(cp => {
-                        if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
-                        else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                        ctx.font = cp.heading ? headingFontFor(cp.heading) : inlineFontFor(cp);
                         cellW += ctx.measureText(cp.text).width;
                     });
 
@@ -877,8 +852,7 @@ export const findLinkAtPosition = (arg1, arg2, arg3, arg4) => {
                     let textY = startY + rowHeight / 2 + FONT_SIZE * 0.3;
 
                     cellParts.forEach(cp => {
-                        if (cp.heading) ctx.font = `700 ${[24,20,18,16,14,12][cp.heading-1]||12}px sans-serif`;
-                        else ctx.font = `${cp.italic?'italic ':''}${cp.bold?'700':'500'} ${FONT_SIZE}px sans-serif`;
+                        ctx.font = cp.heading ? headingFontFor(cp.heading) : inlineFontFor(cp);
 
                         if (cp.link) {
                             const textWidth = ctx.measureText(cp.text).width;
@@ -889,7 +863,6 @@ export const findLinkAtPosition = (arg1, arg2, arg3, arg4) => {
                         }
                         textX += ctx.measureText(cp.text).width;
                     });
-                    ctx.restore();
                     startX += w;
                 });
                 startY += rowHeight;
@@ -903,20 +876,15 @@ export const findLinkAtPosition = (arg1, arg2, arg3, arg4) => {
                 }
             }
 
-            if (linkFound) return linkFound;
+            if (linkFound) { ctx.restore(); return linkFound; }
 
-            currentX += tableWidth + FONT_SIZE;
+            currentX = 0;
             currentLineHeight = Math.max(currentLineHeight, tableHeight + FONT_SIZE);
             continue;
         }
 
-        if (part.link) {
-            const textWidth = ctx.measureText(part.text).width;
-            if (x >= currentX && x <= currentX + textWidth &&
-                y >= currentY - FONT_SIZE * 0.2 && y <= currentY + FONT_SIZE * 0.8) {
-                return part.link;
-            }
-        }
+        // Set the part's font BEFORE measuring/hit-checking it so the hit
+        // rect uses the exact font it was drawn with.
         if (part.heading) {
             const headingSizes = [32, 26, 22, 18, 16, 14];
             const headingSize = headingSizes[part.heading - 1] || 12;
@@ -928,8 +896,18 @@ export const findLinkAtPosition = (arg1, arg2, arg3, arg4) => {
             ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
         }
 
+        if (part.link) {
+            const textWidth = ctx.measureText(part.text).width;
+            if (x >= currentX && x <= currentX + textWidth &&
+                y >= currentY - FONT_SIZE * 0.2 && y <= currentY + FONT_SIZE * 0.8) {
+                ctx.restore();
+                return part.link;
+            }
+        }
+
         currentX += ctx.measureText(part.text).width;
     }
 
+    ctx.restore();
     return null;
 };

@@ -18,6 +18,8 @@ const db = getDatabase(app);
 
 window.firebaseAuth = auth;
 
+const INVALID_NAME_RE = /[.$#\[\]\/]/;
+
 const firebaseUtils = {
     loginRegister: async (email, password) => {
         try {
@@ -35,15 +37,16 @@ const firebaseUtils = {
             return { success: false, message: error.message };
         }
     },
-    
-    getMindMapsList: async (username, password) => {
-        // Access is always scoped to the currently authenticated Firebase user (uid).
+
+    // All cloud access is scoped to the currently authenticated Firebase user
+    // (auth.currentUser.uid); no username/password parameters are needed.
+    getMindMapsList: async () => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         const uid = auth.currentUser.uid;
         const sortMaps = (list) => list.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
         try {
             // Fast path: read only the lightweight metadata index so listing
-            // maps on /portal or /mobile.html does not download full node trees.
+            // maps does not download full node trees.
             const indexRef = ref(db, `mindmaps/${uid}/_index`);
             const indexSnap = await get(indexRef);
             const indexData = indexSnap.val();
@@ -87,10 +90,8 @@ const firebaseUtils = {
         }
     },
 
-    loadMindMap: async (arg1, arg2, arg3, arg4) => {
+    loadMindMap: async (mindmapKey) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
-        // Supports loadMindMap(mapKey) or legacy loadMindMap(username, password, mindmapName, mindmapKey)
-        const mindmapKey = (arg3 !== undefined || arg4 !== undefined) ? (arg4 || arg3) : arg1;
         try {
             const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapKey}`));
             const data = snapshot.val();
@@ -115,10 +116,8 @@ const firebaseUtils = {
         }
     },
 
-    deleteMindMap: async (arg1, arg2, arg3, arg4) => {
+    deleteMindMap: async (mindmapKey) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
-        // Supports deleteMindMap(mapKey) or legacy deleteMindMap(email, password, mindmapName, mindmapKey)
-        const mindmapKey = (arg3 !== undefined || arg4 !== undefined) ? (arg4 || arg3) : arg1;
         const uid = auth.currentUser.uid;
         try {
             await Promise.all([
@@ -132,12 +131,9 @@ const firebaseUtils = {
         }
     },
 
-    renameMindMap: async (arg1, arg2, arg3, arg4) => {
+    renameMindMap: async (oldName, newName) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
-        // Supports renameMindMap(oldName, newName) or legacy renameMindMap(email, password, oldName, newName)
-        const oldName = (arg3 !== undefined && arg4 !== undefined) ? arg3 : arg1;
-        const newName = (arg3 !== undefined && arg4 !== undefined) ? arg4 : arg2;
-        if (newName === '_index' || /[.$#\[\]\/]/.test(newName)) {
+        if (newName === '_index' || INVALID_NAME_RE.test(newName)) {
             return { success: false, message: 'Name contains invalid characters (. $ # [ ] /)' };
         }
         const uid = auth.currentUser.uid;
@@ -146,11 +142,11 @@ const firebaseUtils = {
             const snapshot = await get(oldRef);
             const data = snapshot.val();
             if (!data) return { success: false, message: 'Mind map not found' };
-            
+
             data.name = newName;
             data.timestamp = new Date().toISOString();
             const isPublic = data.isPublic || false;
-            
+
             await set(ref(db, `mindmaps/${uid}/${newName}`), data);
             await remove(oldRef);
             await set(ref(db, `mindmaps/${uid}/_index/${newName}`), {
@@ -171,10 +167,10 @@ const firebaseUtils = {
         }
     },
 
-    changePassword: async (email, password, oldPassword, newPassword) => {
+    changePassword: async (oldPassword, newPassword) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         try {
-            const credential = EmailAuthProvider.credential(email, oldPassword);
+            const credential = EmailAuthProvider.credential(auth.currentUser.email, oldPassword);
             await reauthenticateWithCredential(auth.currentUser, credential);
             await updatePassword(auth.currentUser, newPassword);
             return { success: true, message: 'Password changed successfully' };
@@ -183,12 +179,12 @@ const firebaseUtils = {
         }
     },
 
-    deleteAccount: async (email, password) => {
+    deleteAccount: async (password) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         try {
-            const credential = EmailAuthProvider.credential(email, password);
+            const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
             await reauthenticateWithCredential(auth.currentUser, credential);
-            
+
             const uid = auth.currentUser.uid;
             await remove(ref(db, `mindmaps/${uid}`));
             await remove(ref(db, `public_mindmaps/${uid}`));
@@ -199,24 +195,9 @@ const firebaseUtils = {
         }
     },
 
-    exportMindMaps: async (username, password) => {
+    saveMindMap: async (mindmapName, data) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
-        try {
-            const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}`));
-            const val = snapshot.val() || {};
-            delete val._index;
-            return { success: true, mindmaps: val };
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    },
-
-    saveMindMap: async (arg1, arg2, arg3, arg4) => {
-        if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
-        // Supports saveMindMap(mindmapName, data) or legacy saveMindMap(email, password, mindmapName, data)
-        const mindmapName = (arg3 !== undefined && arg4 !== undefined) ? arg3 : arg1;
-        const data = (arg3 !== undefined && arg4 !== undefined) ? arg4 : arg2;
-        if (mindmapName === '_index' || /[.$#\[\]\/]/.test(mindmapName)) {
+        if (mindmapName === '_index' || INVALID_NAME_RE.test(mindmapName)) {
             return { success: false, message: 'Name contains invalid characters (. $ # [ ] /)' };
         }
         const uid = auth.currentUser.uid;
@@ -237,7 +218,7 @@ const firebaseUtils = {
                 createdAt: createdAt,
                 isPublic: isPublic
             };
-            
+
             await Promise.all([
                 set(ref(db, `mindmaps/${uid}/${mindmapName}`), payload),
                 set(ref(db, `mindmaps/${uid}/_index/${mindmapName}`), {
@@ -247,29 +228,26 @@ const firebaseUtils = {
                     isPublic: isPublic
                 })
             ]);
-            
+
             if (isPublic) {
                 await set(ref(db, `public_mindmaps/${uid}/${mindmapName}`), payload);
             }
-            
+
             return { success: true, message: 'Saved successfully' };
         } catch (error) {
             return { success: false, message: error.message };
         }
     },
 
-    togglePublicMindMap: async (arg1, arg2, arg3, arg4) => {
+    togglePublicMindMap: async (mindmapName, isPublic) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
-        // Supports togglePublicMindMap(mindmapName, isPublic) or legacy togglePublicMindMap(email, password, mindmapName, isPublic)
-        const mindmapName = (arg3 !== undefined && arg4 !== undefined) ? arg3 : arg1;
-        const isPublic = (arg3 !== undefined && arg4 !== undefined) ? arg4 : arg2;
         const uid = auth.currentUser.uid;
         try {
             await Promise.all([
                 update(ref(db, `mindmaps/${uid}/${mindmapName}`), { isPublic }),
                 update(ref(db, `mindmaps/${uid}/_index/${mindmapName}`), { isPublic })
             ]);
-            
+
             if (isPublic) {
                 const snapshot = await get(ref(db, `mindmaps/${uid}/${mindmapName}`));
                 await set(ref(db, `public_mindmaps/${uid}/${mindmapName}`), snapshot.val());
@@ -284,16 +262,3 @@ const firebaseUtils = {
 };
 
 window.firebaseUtils = firebaseUtils;
-
-window.escapeHtml = (unsafe) => {
-    return (unsafe || '').replace(/[&<"'>]/g, function (match) {
-        switch (match) {
-            case '&': return '&amp;';
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '"': return '&quot;';
-            case "'": return '&#39;';
-            default: return match;
-        }
-    });
-};

@@ -3,7 +3,7 @@
  * Searches mindmap node text, highlights matches, and smoothly pans to the selected result.
  */
 
-export function initCanvasSearch({ dom, state, canvas, requestRedraw }) {
+export function initCanvasSearch({ dom, state, canvas, requestRedraw, persistView }) {
     let searchMatches = [];
     let searchMatchIndex = -1;
 
@@ -21,6 +21,8 @@ export function initCanvasSearch({ dom, state, canvas, requestRedraw }) {
             dom.canvasSearchCount.textContent = `${searchMatchIndex + 1}/${searchMatches.length}`;
         }
         if (typeof requestRedraw === 'function') requestRedraw();
+        // Persist the jumped-to view so a reload does not snap back.
+        if (typeof persistView === 'function') persistView();
     };
 
     const runCanvasSearch = () => {

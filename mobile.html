@@ -6,7 +6,7 @@
     <meta name="description" content="View your 7System mind maps on the go.">
     <title>7System - Mobile Feed</title>
     <link rel="icon" type="image/png" href="assets/mapMind.png">
-    <link rel="stylesheet" href="css/styles.css?v=15">
+    <link rel="stylesheet" href="css/styles.css?v=16">
     <script>
         // Apply the saved theme before first paint (defaults to Dark Mode).
         try {
@@ -24,8 +24,13 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         // Mermaid comes from a CDN; guard so a blocked CDN cannot throw.
+        // Match the applied theme (dark by default) so first diagrams render
+        // in the right palette instead of light-on-light text.
         if (window.mermaid) {
-            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+            var isDark = document.documentElement.classList.contains('dark');
+            try {
+                mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+            } catch (e) {}
         }
     </script>
     <link rel="stylesheet" href="css/mobile.css">
@@ -65,7 +70,7 @@
     </div>
 
     <!-- We define the API and Logic at the bottom -->
-    <script type="module" src="js/api.js?v=15"></script>
-    <script type="module" src="js/mobile.js?v=15"></script>
+    <script type="module" src="js/api.js?v=16"></script>
+    <script type="module" src="js/mobile.js?v=16"></script>
 </body>
 </html>

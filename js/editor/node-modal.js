@@ -189,15 +189,25 @@ export function initNodeModal({ state, findNodeById, updateNodeDimensions, saveS
         const pastedText = (e.clipboardData || window.clipboardData).getData('text').trim();
         const urlRegex = /^(https?:\/\/[^\s]+)$/i;
 
-        if (urlRegex.test(pastedText)) {
-            const start = nodeEditor.selectionStart;
-            const end = nodeEditor.selectionEnd;
-            const selectedText = nodeEditor.value.substring(start, end);
-            const markdownLink = formatSmartPastedUrl(pastedText, selectedText);
+        if (!urlRegex.test(pastedText)) return;
 
-            e.preventDefault();
-            document.execCommand('insertText', false, markdownLink);
-        }
+        const start = nodeEditor.selectionStart;
+        const end = nodeEditor.selectionEnd;
+        const textBefore = nodeEditor.value.substring(0, start);
+
+        // Skip smart formatting when the cursor is already inside a markdown
+        // link/image target (`](` or `<` immediately before), so the raw URL
+        // is inserted as-is instead of nesting a second link.
+        if (textBefore.endsWith('](') || textBefore.endsWith('<')) return;
+
+        e.preventDefault();
+        const selectedText = nodeEditor.value.substring(start, end);
+        const markdownLink = formatSmartPastedUrl(pastedText, selectedText);
+        const textAfter = nodeEditor.value.substring(end);
+        nodeEditor.value = textBefore + markdownLink + textAfter;
+        nodeEditor.selectionStart = nodeEditor.selectionEnd = start + markdownLink.length;
+        nodeEditor.focus();
+        updateEditorSize();
     });
 
     return {

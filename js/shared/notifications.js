@@ -34,6 +34,3 @@ export function showNotification(title, message, type = 'success') {
         notificationTimer = null;
     }, 3000);
 }
-
-// Attach to window for non-module scripts or inline event handlers
-window.showNotification = showNotification;

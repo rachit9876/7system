@@ -29,11 +29,18 @@ export const findNodeById = (nodes, id) => {
 export const findNodeAt = (nodes, pan, zoom, x, y) => {
     if (!Array.isArray(nodes)) return null;
     const worldPos = screenToWorld(pan, zoom, x, y);
-    const matched = nodes.slice().reverse().find(n =>
-        worldPos.x >= n.x && worldPos.x <= n.x + n.width &&
-        worldPos.y >= n.y && worldPos.y <= n.y + n.height
-    );
-    return matched ? matched.id : null;
+    // Iterate in reverse so the topmost node receives the click, without
+    // allocating a reversed copy of the array on every mouse move.
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const n = nodes[i];
+        if (
+            worldPos.x >= n.x && worldPos.x <= n.x + n.width &&
+            worldPos.y >= n.y && worldPos.y <= n.y + n.height
+        ) {
+            return n.id;
+        }
+    }
+    return null;
 };
 
 export const drawGrid = (ctx, canvas, state) => {

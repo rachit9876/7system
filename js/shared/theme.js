@@ -114,11 +114,3 @@ export function initTheme(updateCallback = null) {
 
     return shouldBeDark;
 }
-
-// Global browser window bindings for compatibility
-if (typeof window !== 'undefined') {
-    window.setTheme = setTheme;
-    window.toggleTheme = toggleTheme;
-    window.initTheme = initTheme;
-    window.configureMermaid = configureMermaid;
-}

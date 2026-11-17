@@ -84,13 +84,23 @@ Backed by Firebase (email + password auth, Realtime Database):
 │   ├── portal.css        # Dashboard styles
 │   └── mobile.css        # Mobile feed styles
 ├── js/
-│   ├── editor.js         # Canvas engine, markdown renderer, history, cloud UI
+│   ├── editor.js         # Editor orchestrator: wiring, events, hotkeys
 │   ├── api.js            # Firebase integration (window.firebaseUtils)
 │   ├── portal.js         # Dashboard logic
 │   ├── mobile.js         # Feed logic (marked + DOMPurify)
-│   └── shared/
-│       ├── notifications.js  # Toast notifications
-│       └── theme.js          # Theme helpers
+│   ├── editor/           # Desktop editor subsystems
+│   │   ├── state.js          # State object, undo/redo history, localStorage
+│   │   ├── node-modal.js     # Rich markdown node editor modal
+│   │   ├── markdown-canvas.js# Canvas markdown parser/measure/renderer
+│   │   ├── canvas-view.js    # Pan/zoom math, grid, Bézier connectors, fit-view
+│   │   ├── search.js         # Ctrl+F node search
+│   │   └── cloud-sync.js     # Auth session UI + cloud save/load modals
+│   └── shared/           # Single source of truth across pages
+│       ├── theme.js          # Theme + Mermaid config (one implementation)
+│       ├── markdown-tree.js  # nodesToMarkdown / markdownToNodes
+│       ├── layout.js         # Reingold-Tilford tree layout (O(n))
+│       ├── smart-url.js      # Smart URL paste formatting
+│       └── notifications.js  # Toast notifications
 └── assets/               # Icons and logo
 ```
 

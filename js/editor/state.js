@@ -1,10 +1,11 @@
 /**
  * 7System - Central Editor State & Undo/Redo History
- * Manages mutable mindmap node state, undo/redo snapshots, local storage persistence,
- * and node lookup queries.
+ * Single source of truth for the mutable mindmap state, undo/redo snapshots,
+ * localStorage persistence, and node tree mutations shared by the desktop editor.
  */
 
 import { showNotification } from '../shared/notifications.js';
+import { setTheme } from '../shared/theme.js';
 
 export function createEditorState() {
     return {
@@ -31,23 +32,21 @@ export function createEditorState() {
     };
 }
 
-export const findNodeById = (state, id) => state.nodes.find(n => n.id === id);
-
-export const findNodeAt = (state, screenToWorld, x, y) => {
-    const worldPos = screenToWorld(x, y);
-    // Iterate in reverse so the topmost node receives the click
-    for (let i = state.nodes.length - 1; i >= 0; i--) {
-        const node = state.nodes[i];
-        if (
-            worldPos.x >= node.x &&
-            worldPos.x <= node.x + node.width &&
-            worldPos.y >= node.y &&
-            worldPos.y <= node.y + node.height
-        ) {
-            return node;
+// Iterative, cycle-safe deletion: removes a node and all of its
+// descendants without risking a stack overflow on cyclic data.
+export const deleteNode = (state, nodeId) => {
+    const toDelete = new Set([nodeId]);
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (const n of state.nodes) {
+            if (n.parentId !== null && toDelete.has(n.parentId) && !toDelete.has(n.id)) {
+                toDelete.add(n.id);
+                changed = true;
+            }
         }
     }
-    return null;
+    state.nodes = state.nodes.filter(n => !toDelete.has(n.id));
 };
 
 export const saveToLocalStorage = (state) => {
@@ -106,6 +105,7 @@ export const applyProjectData = (state, data, updateDimensionsFn = null, dom = n
     state.nextNodeId = Math.max(Number(data.metadata?.nextNodeId) || Number(data.nextNodeId) || 1, maxNodeId + 1);
 
     // Sanitize parent links: drop references to missing nodes and break cycles
+    // so later traversals can never hang or overflow.
     const nodeById = new Map(state.nodes.map(n => [n.id, n]));
     state.nodes.forEach(node => {
         if (node.parentId !== null && !nodeById.has(node.parentId)) {
@@ -130,6 +130,9 @@ export const applyProjectData = (state, data, updateDimensionsFn = null, dom = n
         ? { x: Number(settings.pan.x), y: Number(settings.pan.y) }
         : { x: 0, y: 0 };
 
+    if (settings.theme) {
+        setTheme(settings.theme === 'dark');
+    }
     if (settings.showGrid !== undefined) {
         state.showGrid = Boolean(settings.showGrid);
         if (dom && dom.gridToggle) dom.gridToggle.classList.toggle('is-active', state.showGrid);
