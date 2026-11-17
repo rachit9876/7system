@@ -205,6 +205,23 @@ textarea:focus-visible {
     background: var(--surface);
 }
 
+.btn-danger {
+    background: var(--danger);
+    color: #ffffff;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #991b1b;
+}
+
+.btn-text {
+    width: auto;
+    min-width: var(--control-size);
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
 .btn.is-active {
     background: var(--accent);
     color: #ffffff;
@@ -381,16 +398,6 @@ button:not(.btn):active {
 
 #modalConfirm:hover {
     background: var(--accent-hover);
-}
-
-#notification {
-    width: min(28rem, calc(100vw - 2rem));
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-raised-lg);
-    color: var(--text-primary);
-    pointer-events: none;
 }
 
 .mindmap-item {
@@ -681,7 +688,8 @@ button:not(.btn):active {
 .hover\:bg-\[var\(--surface-muted\)\]:hover { background: var(--surface-muted); }
 
 /* --- Floating Pill Header (Desktop Canvas Only) --- */
-body:has(#mindMapCanvas) header {
+body:has(#mindMapCanvas) header,
+.floating-header {
     position: fixed;
     top: 0;
     left: 0;
@@ -696,14 +704,173 @@ body:has(#mindMapCanvas) header {
 }
 body:has(#mindMapCanvas) header .header-left,
 body:has(#mindMapCanvas) header .toolbar-center,
-body:has(#mindMapCanvas) header .header-right {
+body:has(#mindMapCanvas) header .header-right,
+.floating-pill {
     pointer-events: auto;
     display: flex;
     align-items: center;
     gap: 0.25rem;
     padding: 0.375rem;
+    background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-raised);
+}
+.pill-divider {
+    width: 1px;
+    height: 1.25rem;
+    background: var(--border);
+    margin: 0 0.125rem;
+    flex-shrink: 0;
+}
+.zoom-indicator-pill {
+    font-size: 0.75rem;
+    font-weight: 600;
+    width: 3rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    transition: background var(--transition);
+}
+.zoom-indicator-pill:hover {
+    background: var(--surface-muted);
+}
+
+/* ==========================================================================
+   Semantic Modal & Form Components
+   ========================================================================== */
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.modal-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    box-shadow: var(--shadow-raised);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-raised-lg);
+    width: 24rem;
+    max-width: min(28rem, calc(100vw - 2rem));
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+.modal-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+.modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1.25rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.375rem;
+    color: var(--text-primary);
+}
+.form-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.canvas-search-bar {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: color-mix(in srgb, var(--bg-secondary) 95%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-raised-lg);
+}
+
+#notification,
+.notification-toast,
+.toast-notification {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 1.25rem;
+    right: auto;
+    z-index: 60;
+    width: auto;
+    min-width: 18rem;
+    max-width: min(28rem, calc(100vw - 2.5rem));
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-raised-lg);
+    padding: 0.875rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease;
+    pointer-events: auto;
+}
+
+#notification.pointer-events-none,
+.notification-toast.pointer-events-none,
+.toast-notification.pointer-events-none {
+    pointer-events: none !important;
+}
+
+#notification.opacity-0,
+.notification-toast.opacity-0,
+.toast-notification.opacity-0 {
+    opacity: 0 !important;
+}
+
+#notification.translate-y-20,
+.notification-toast.translate-y-20,
+.toast-notification.translate-y-20 {
+    transform: translateY(2.5rem) !important;
+}
+
+#notification.translate-y-0,
+.notification-toast.translate-y-0,
+.toast-notification.translate-y-0 {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
 }

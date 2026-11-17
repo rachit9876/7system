@@ -1,5 +1,7 @@
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 import { showNotification } from "./shared/notifications.js";
+import { initTheme, toggleTheme, setTheme } from "./shared/theme.js";
+import { nodesToMarkdown, markdownToNodes } from "./shared/markdown-tree.js";
 
 // Check Auth
 let sessionAuth = null;
@@ -39,36 +41,8 @@ const waitForAuth = setInterval(() => {
 
 // Notifications imported from shared module
 
-// Theme Handling
-const themeToggle = document.getElementById('themeToggle');
-const iconLight = document.getElementById('theme-icon-light');
-const iconDark = document.getElementById('theme-icon-dark');
-
-function setTheme(isDark) {
-    if (isDark) {
-        document.documentElement.classList.add('dark');
-        iconLight.classList.add('hidden');
-        iconDark.classList.remove('hidden');
-        localStorage.setItem('mindmap-theme', 'dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-        iconLight.classList.remove('hidden');
-        iconDark.classList.add('hidden');
-        localStorage.setItem('mindmap-theme', 'light');
-    }
-}
-
-themeToggle.addEventListener('click', () => {
-    const isDark = document.documentElement.classList.contains('dark');
-    setTheme(!isDark);
-});
-
-const savedTheme = localStorage.getItem('mindmap-theme');
-if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    setTheme(true);
-} else {
-    setTheme(false);
-}
+// Initialize Theme (defaults to Dark Mode)
+initTheme();
 
 // State
 let mindMaps = [];
@@ -383,53 +357,6 @@ const singleDelete = async (name) => {
     }
 };
 
-
-
-const nodesToMarkdown = (nodes = []) => {
-    const nodeIds = new Set(nodes.map(n => n.id));
-    const roots = nodes.filter(n => !n.parentId || !nodeIds.has(n.parentId));
-    let md = '';
-    const visited = new Set();
-    const traverse = (node, depth) => {
-        if (visited.has(node.id)) return;
-        visited.add(node.id);
-        const indent = '  '.repeat(depth);
-        const safeText = (node.text || '').replace(/\n/g, '<br>');
-        md += `${indent}- ${safeText}\n`;
-        nodes.filter(n => n.parentId === node.id)
-            .sort((a, b) => (a.y || 0) - (b.y || 0))
-            .forEach(c => traverse(c, depth + 1));
-    };
-    roots.sort((a, b) => (a.y || 0) - (b.y || 0)).forEach(r => traverse(r, 0));
-    return md.trim();
-};
-
-const markdownToNodesData = (md) => {
-    const lines = md.replace(/\r\n?/g, '\n').split('\n');
-    const nodes = [];
-    let currentId = 1;
-    const stack = [];
-    lines.forEach(line => {
-        if (!line.trim()) return;
-        const match = line.match(/^(\s*)([-*+•]\s+)?(.*)$/);
-        if (!match || !match[2]) {
-            if (nodes.length > 0) {
-                nodes[nodes.length - 1].text += '\n' + line.trim().replace(/<br>/gi, '\n');
-            }
-            return;
-        }
-        const spaces = match[1].replace(/\t/g, '  ').length;
-        const depth = Math.floor(spaces / 2);
-        const text = match[3].replace(/<br>/gi, '\n').trim();
-        while (stack.length > 0 && stack[stack.length - 1].depth >= depth) stack.pop();
-        const parentId = stack.length > 0 ? stack[stack.length - 1].id : null;
-        const node = { id: currentId++, text, x: depth * 260 + 100, y: nodes.length * 140 + 100, parentId, width: 200, height: 100 };
-        nodes.push(node);
-        stack.push({ depth, id: node.id });
-    });
-    return { nodes, metadata: { nextNodeId: currentId } };
-};
-
 const downloadJson = (filename, data) => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -525,7 +452,8 @@ bulkImportInput.addEventListener('change', async (e) => {
             const text = await file.text();
             let data = JSON.parse(text);
             if (data && typeof data.markdown === 'string') {
-                data = markdownToNodesData(data.markdown);
+                const parsed = markdownToNodes(data.markdown);
+                data = { nodes: parsed.nodes, metadata: { nextNodeId: parsed.nextId } };
             }
             if (!data || !Array.isArray(data.nodes)) {
                 throw new Error('Invalid mind map file');

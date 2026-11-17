@@ -6,7 +6,7 @@
     <meta name="description" content="7System is a fast, offline-first mind mapping and note-taking tool.">
     <title>7System</title>
     <link rel="icon" type="image/png" href="assets/mapMind.png">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=15">
     <script>
         // Apply the saved theme before first paint (defaults to Dark Mode).
         try {
@@ -26,7 +26,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Mermaid comes from a CDN; guard so a blocked CDN cannot throw.
             if (window.mermaid) {
-                mermaid.initialize({ startOnLoad: false, theme: 'default' });
+                var isDark = document.documentElement.classList.contains('dark');
+                try {
+                    mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+                } catch (e) {}
             }
         });
     </script>
@@ -146,15 +149,15 @@
   </symbol>
 </svg>
 
-    <header class="pointer-events-none fixed top-0 left-0 right-0 p-3 flex justify-between items-center z-20">
-        <div class="header-left pointer-events-auto flex items-center gap-1 p-1.5 bg-[var(--bg-secondary)]/90 backdrop-blur-xl border border-[var(--border)] rounded-xl shadow-md">
+    <header class="floating-header">
+        <div class="header-left floating-pill">
             <button id="importBtn" class="btn btn-secondary" title="Import JSON (Ctrl+O)" aria-label="Import JSON">
                 <svg class="w-4 h-4"><use href="#icon-import"/></svg>
             </button>
             <button id="exportBtn" class="btn btn-secondary" title="Export JSON" aria-label="Export JSON">
                 <svg class="w-4 h-4"><use href="#icon-export"/></svg>
             </button>
-            <div class="h-5 w-px bg-[var(--border)] mx-0.5"></div>
+            <div class="pill-divider"></div>
             <button id="importMdBtn" class="btn btn-secondary" title="Paste Markdown Tree" aria-label="Paste Markdown">
                 <svg class="w-4 h-4"><use href="#icon-paste-md"/></svg>
             </button>
@@ -162,14 +165,14 @@
                 <svg class="w-4 h-4"><use href="#icon-copy-md"/></svg>
             </button>
         </div>
-        <div class="toolbar-center pointer-events-auto flex items-center gap-1 p-1.5 bg-[var(--bg-secondary)]/90 backdrop-blur-xl border border-[var(--border)] rounded-xl shadow-md">
+        <div class="toolbar-center floating-pill">
             <button id="undoBtn" class="btn btn-secondary" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
                 <svg class="w-4 h-4"><use href="#icon-undo"/></svg>
             </button>
             <button id="redoBtn" class="btn btn-secondary" title="Redo (Ctrl+Y / Ctrl+Shift+Z)" aria-label="Redo" disabled>
                 <svg class="w-4 h-4"><use href="#icon-redo"/></svg>
             </button>
-            <div class="w-px h-5 bg-[var(--border)] mx-0.5"></div>
+            <div class="pill-divider"></div>
             <button id="newCanvasBtn" class="btn btn-secondary" title="New Canvas" aria-label="New Canvas">
                 <svg class="w-4 h-4"><use href="#icon-new-file"/></svg>
             </button>
@@ -177,7 +180,7 @@
                 <svg class="w-5 h-5"><use href="#icon-plus"/></svg>
             </button>
 
-            <div class="w-px h-5 bg-[var(--border)] mx-0.5"></div>
+            <div class="pill-divider"></div>
             <button id="lockBtn" class="btn btn-secondary" title="Lock Nodes" aria-label="Lock Nodes">
                 <svg id="lock-icon-unlocked" class="w-4 h-4"><use href="#icon-lock-unlocked"/></svg>
                 <svg id="lock-icon-locked" class="w-4 h-4 hidden"><use href="#icon-lock-locked"/></svg>
@@ -185,11 +188,11 @@
             <button id="zoomOutBtn" class="btn btn-secondary" title="Zoom Out (-)" aria-label="Zoom Out">
                 <svg class="w-4 h-4"><use href="#icon-minus"/></svg>
             </button>
-            <button id="zoomIndicator" class="text-xs font-semibold w-12 h-8 flex items-center justify-center rounded-md hover:bg-[var(--surface-muted)] cursor-pointer transition-colors" title="Click to reset zoom to 100%">100%</button>
+            <button id="zoomIndicator" class="zoom-indicator-pill" title="Click to reset zoom to 100%">100%</button>
             <button id="zoomInBtn" class="btn btn-secondary" title="Zoom In (+)" aria-label="Zoom In">
                 <svg class="w-4 h-4"><use href="#icon-plus"/></svg>
             </button>
-            <div class="w-px h-5 bg-[var(--border)] mx-0.5"></div>
+            <div class="pill-divider"></div>
             <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View" aria-label="Fit to View">
                 <svg class="w-4 h-4"><use href="#icon-fit-view"/></svg>
             </button>
@@ -201,7 +204,7 @@
             </button>
         </div>
 
-        <div class="header-right pointer-events-auto flex items-center gap-1 p-1.5 bg-[var(--bg-secondary)]/90 backdrop-blur-xl border border-[var(--border)] rounded-xl shadow-md">
+        <div class="header-right floating-pill">
             <button id="accountBtn" class="btn btn-secondary" title="Account" aria-label="Account">
                 <svg class="w-4 h-4"><use href="#icon-user"/></svg>
             </button>
@@ -226,8 +229,8 @@
 
     <main class="flex-1 relative">
     <canvas id="mindMapCanvas"></canvas>
-    <div id="canvasSearchBar" class="hidden absolute top-3 right-3 z-20 flex items-center gap-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-2">
-        <input type="text" id="canvasSearchInput" class="px-2 py-1 text-sm border border-[var(--border)] rounded bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] w-48" placeholder="Find node (Ctrl+F)...">
+    <div id="canvasSearchBar" class="hidden canvas-search-bar">
+        <input type="text" id="canvasSearchInput" class="form-input w-48 text-sm" placeholder="Find node (Ctrl+F)...">
         <span id="canvasSearchCount" class="text-xs text-[var(--text-secondary)] min-w-[3rem] text-center">0/0</span>
         <button id="canvasSearchPrev" class="btn btn-secondary px-2 py-1 text-xs" title="Previous (Shift+Enter)" aria-label="Previous match">&uarr;</button>
         <button id="canvasSearchNext" class="btn btn-secondary px-2 py-1 text-xs" title="Next (Enter)" aria-label="Next match">&darr;</button>
@@ -248,7 +251,7 @@
     <input type="file" id="file-input" class="hidden" accept=".json">
 
     <!-- Rich Node Editor Modal -->
-    <div id="nodeEditorModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div id="nodeEditorModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
         <div class="node-editor-card">
             <div class="node-editor-bar">
                 <div class="flex flex-wrap items-center gap-1" id="nodeEditorToolbar">
@@ -273,74 +276,74 @@
             <div class="node-editor-footer">
                 <span class="text-xs text-[var(--text-secondary)]">Shift+Enter to save · Esc to cancel</span>
                 <div class="flex gap-2">
-                    <button type="button" id="nodeEditorCancelBtn" class="px-3 py-1.5 text-sm border border-[var(--border)] rounded-lg hover:bg-[var(--surface-muted)] transition-colors">Cancel</button>
-                    <button type="button" id="nodeEditorDoneBtn" class="px-4 py-1.5 text-sm bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium">Done</button>
+                    <button type="button" id="nodeEditorCancelBtn" class="btn btn-text btn-secondary">Cancel</button>
+                    <button type="button" id="nodeEditorDoneBtn" class="btn btn-text btn-primary">Done</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Account Login/Register Modal -->
-    <div id="accountModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
-            <h3 class="text-lg font-semibold mb-4">Account</h3>
+    <div id="accountModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <h3 class="modal-title">Account</h3>
             <form onsubmit="event.preventDefault();">
-                <div class="mb-4">
-                    <label for="accountUsernameInput" class="block text-sm font-medium mb-2">Email:</label>
-                    <input type="email" id="accountUsernameInput" autocomplete="email" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter email address">
+                <div class="form-group">
+                    <label for="accountUsernameInput" class="form-label">Email:</label>
+                    <input type="email" id="accountUsernameInput" autocomplete="email" class="form-input" placeholder="Enter email address">
                 </div>
-                <div class="mb-4">
-                    <label for="accountPasswordInput" class="block text-sm font-medium mb-2">Password:</label>
-                    <input type="password" id="accountPasswordInput" autocomplete="current-password" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter password">
+                <div class="form-group">
+                    <label for="accountPasswordInput" class="form-label">Password:</label>
+                    <input type="password" id="accountPasswordInput" autocomplete="current-password" class="form-input" placeholder="Enter password">
                 </div>
                 <div id="accountStatus" class="text-sm text-[var(--text-secondary)] mb-4 hidden"></div>
-                <div class="flex gap-2 justify-end">
-                    <button type="button" id="accountCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
-                    <button type="submit" id="accountLogin" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Login / Register</button>
+                <div class="modal-actions">
+                    <button type="button" id="accountCancel" class="btn btn-text btn-secondary">Cancel</button>
+                    <button type="submit" id="accountLogin" class="btn btn-text btn-primary">Login / Register</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Cloud Save/Load Modal -->
-    <div id="cloudModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4 max-h-[90vh] flex flex-col">
-            <h3 id="modalTitle" class="text-lg font-semibold mb-4">Save to Cloud</h3>
-            <div class="mb-4">
-                <label for="mindmapNameInput" class="block text-sm font-medium mb-2">Mind Map Name:</label>
-                <input type="text" id="mindmapNameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter mind map name">
+    <div id="cloudModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
+        <div class="modal-card max-h-[90vh]">
+            <h3 id="modalTitle" class="modal-title">Save to Cloud</h3>
+            <div class="form-group">
+                <label for="mindmapNameInput" class="form-label">Mind Map Name:</label>
+                <input type="text" id="mindmapNameInput" class="form-input" placeholder="Enter mind map name">
             </div>
-            <div id="cloudModalExistingListContainer" class="mb-4 hidden flex-1 min-h-[100px] overflow-y-auto border border-[var(--border)] rounded-lg p-2">
+            <div id="cloudModalExistingListContainer" class="form-group hidden flex-1 min-h-[100px] overflow-y-auto border border-[var(--border)] rounded-lg p-2">
                 <div class="text-xs font-medium mb-2 text-[var(--text-secondary)] uppercase tracking-wider">Existing Maps (Click to overwrite)</div>
                 <div id="cloudModalExistingList" class="space-y-1"></div>
             </div>
-            <div class="flex gap-2 justify-end mt-auto">
-                <button id="modalCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
-                <button id="modalConfirm" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Save</button>
+            <div class="modal-actions mt-auto">
+                <button id="modalCancel" class="btn btn-text btn-secondary">Cancel</button>
+                <button id="modalConfirm" class="btn btn-text btn-primary">Save</button>
             </div>
         </div>
     </div>
 
     <!-- Confirm Modal -->
-    <div id="confirmModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
-            <h3 id="confirmModalTitle" class="text-lg font-semibold mb-4">Confirm</h3>
+    <div id="confirmModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <h3 id="confirmModalTitle" class="modal-title">Confirm</h3>
             <p id="confirmModalMessage" class="text-sm text-[var(--text-secondary)] mb-4"></p>
-            <div class="flex gap-2 justify-end">
-                <button id="confirmModalCancel" class="hidden px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
-                <button id="confirmModalNo" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">No</button>
-                <button id="confirmModalYes" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Yes</button>
+            <div class="modal-actions">
+                <button id="confirmModalCancel" class="hidden btn btn-text btn-secondary">Cancel</button>
+                <button id="confirmModalNo" class="btn btn-text btn-secondary">No</button>
+                <button id="confirmModalYes" class="btn btn-text btn-primary">Yes</button>
             </div>
         </div>
     </div>
 
     <!-- Project List Modal -->
-    <div id="projectListModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+    <div id="projectListModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
+        <div class="modal-card">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">Your Mind Maps</h3>
-                <button id="projectListClose" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                    <svg class="w-5 h-5"><use href="#icon-x"/></svg>
+                <h3 class="modal-title mb-0">Your Mind Maps</h3>
+                <button id="projectListClose" class="btn btn-secondary" title="Close" aria-label="Close">
+                    <svg class="w-4 h-4"><use href="#icon-x"/></svg>
                 </button>
             </div>
             <div id="projectListContent" class="max-h-96 overflow-y-auto border border-[var(--border)] rounded-lg bg-[var(--bg)] p-2">
@@ -350,19 +353,15 @@
     </div>
 
     <!-- Notification Toast -->
-    <div id="notification" class="fixed bottom-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-4 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 z-50 max-w-md">
-        <div class="flex items-start">
-            <div id="notificationIcon" class="mr-3 mt-0.5">
-                <!-- Icon will be inserted here -->
-            </div>
-            <div>
-                <h4 id="notificationTitle" class="font-semibold"></h4>
-                <p id="notificationMessage" class="text-sm text-[var(--text-secondary)]"></p>
-            </div>
+    <div id="notification" class="notification-toast translate-y-20 opacity-0 pointer-events-none">
+        <div id="notificationIcon" class="mr-3 mt-0.5"></div>
+        <div>
+            <h4 id="notificationTitle" class="font-semibold text-sm"></h4>
+            <p id="notificationMessage" class="text-sm text-[var(--text-secondary)]"></p>
         </div>
     </div>
 
-    <script type="module" src="js/api.js?v=10"></script>
-    <script type="module" src="js/editor.js?v=10"></script>
+    <script type="module" src="js/api.js?v=15"></script>
+    <script type="module" src="js/editor.js?v=15"></script>
 </body>
 </html>

@@ -6,7 +6,16 @@
     <meta name="description" content="View your 7System mind maps on the go.">
     <title>7System - Mobile Feed</title>
     <link rel="icon" type="image/png" href="assets/mapMind.png">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=15">
+    <script>
+        // Apply the saved theme before first paint (defaults to Dark Mode).
+        try {
+            var savedTheme = localStorage.getItem('mindmap-theme');
+            if (savedTheme !== 'light') {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) {}
+    </script>
 
     <!-- Pin library versions so future major releases of marked cannot break
          the token-based renderer API used in mobile.js. -->
@@ -29,12 +38,12 @@
                 <h1 class="text-2xl font-semibold tracking-tight">7System</h1>
             </div>
             <div class="flex gap-2 items-center">
-                <button id="themeToggleBtn" class="p-2 border rounded transition-colors hover:bg-[var(--surface-muted)]" style="background: var(--surface); color: var(--text-primary); border-color: var(--border);">
+                <button id="themeToggleBtn" class="btn btn-secondary" title="Toggle Theme" aria-label="Toggle Theme">
                     <svg id="icon-light" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                     <svg id="icon-dark" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"/></svg>
                 </button>
-                <a href="portal.html" id="portalBtn" class="hidden p-2 border rounded font-medium text-sm flex items-center justify-center transition-colors hover:bg-[var(--surface-muted)]" style="background: var(--surface); color: var(--text-primary); border-color: var(--border);">Portal</a>
-                <button id="logoutBtn" class="hidden p-2 border rounded font-medium text-sm transition-colors hover:bg-[var(--surface-muted)]" style="background: var(--surface); color: var(--text-primary); border-color: var(--border);">Logout</button>
+                <a href="portal.html" id="portalBtn" class="hidden btn btn-text btn-secondary" title="Portal">Portal</a>
+                <button id="logoutBtn" class="hidden btn btn-text btn-secondary" title="Logout">Logout</button>
             </div>
         </div>
     </header>
@@ -56,7 +65,7 @@
     </div>
 
     <!-- We define the API and Logic at the bottom -->
-    <script type="module" src="js/api.js?v=10"></script>
-    <script type="module" src="js/mobile.js?v=10"></script>
+    <script type="module" src="js/api.js?v=15"></script>
+    <script type="module" src="js/mobile.js?v=15"></script>
 </body>
 </html>

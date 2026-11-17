@@ -1,4 +1,5 @@
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+        import { initTheme } from "./shared/theme.js";
 
 
 
@@ -18,37 +19,9 @@
         const feedLoader = document.getElementById('feedLoader');
 
         // Theme Toggle Logic
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const iconLight = document.getElementById('icon-light');
-        const iconDark = document.getElementById('icon-dark');
-        
-        const updateThemeIcon = (isDark) => {
-            if (isDark) {
-                iconLight.classList.add('hidden');
-                iconDark.classList.remove('hidden');
-            } else {
-                iconLight.classList.remove('hidden');
-                iconDark.classList.add('hidden');
-            }
-        };
-
-        const savedTheme = localStorage.getItem('mindmap-theme') || 'light';
-        if (savedTheme === 'dark') {
-            document.documentElement.classList.add('dark');
-            updateThemeIcon(true);
-        } else {
-            updateThemeIcon(false);
-        }
-
-        themeToggleBtn.addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            const isDark = document.documentElement.classList.contains('dark');
-            localStorage.setItem('mindmap-theme', isDark ? 'dark' : 'light');
-            updateThemeIcon(isDark);
-            
+        initTheme((isDark) => {
             // Re-render mermaid diagrams with the new theme
             if (typeof mermaid === 'undefined' || !mermaid.render) return;
-            mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
             document.querySelectorAll('.mermaid-code').forEach(async (el) => {
                 try {
                     const { svg } = await mermaid.render('mermaid-' + Math.random().toString(36).substring(2, 11), el.textContent);

@@ -6,7 +6,7 @@
     <meta name="description" content="Manage your 7System mind maps from the dashboard.">
     <title>Dashboard - 7System</title>
     <link rel="icon" type="image/png" href="assets/mapMind.png">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=15">
 
     <link rel="stylesheet" href="css/portal.css">
     <script>
@@ -144,51 +144,49 @@
 <!-- Modals -->
 
 <!-- Rename Modal -->
-<div id="renameModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
-        <h3 class="text-lg font-semibold mb-4">Rename Mind Map</h3>
-        <div class="mb-4">
-            <label for="newMapNameInput" class="block text-sm font-medium mb-2">New Name:</label>
-            <input type="text" id="newMapNameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+<div id="renameModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <h3 class="modal-title">Rename Mind Map</h3>
+        <div class="form-group">
+            <label for="newMapNameInput" class="form-label">New Name:</label>
+            <input type="text" id="newMapNameInput" class="form-input">
         </div>
-        <div class="flex gap-2 justify-end">
-            <button id="renameCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
-            <button id="renameConfirm" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Rename</button>
+        <div class="modal-actions">
+            <button id="renameCancel" class="btn btn-text btn-secondary">Cancel</button>
+            <button id="renameConfirm" class="btn btn-text btn-primary">Rename</button>
         </div>
     </div>
 </div>
 
 <!-- Delete Account Confirm Modal -->
-<div id="deleteAccountModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
-        <h3 class="text-lg font-semibold mb-4 text-[var(--danger)]">Confirm Account Deletion</h3>
+<div id="deleteAccountModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <h3 class="modal-title text-[var(--danger)]">Confirm Account Deletion</h3>
         <p class="text-sm text-[var(--text-secondary)] mb-4">Please enter your password to confirm account deletion.</p>
-        <div class="mb-4">
-            <input type="password" id="deleteAccountPassword" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Password">
+        <div class="form-group">
+            <input type="password" id="deleteAccountPassword" class="form-input" placeholder="Password">
         </div>
-        <div class="flex gap-2 justify-end">
-            <button id="deleteAccountCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
-            <button id="deleteAccountConfirm" class="px-4 py-2 bg-[var(--danger)] text-white rounded-lg hover:bg-[#991b1b] transition-colors">Permanently Delete</button>
+        <div class="modal-actions">
+            <button id="deleteAccountCancel" class="btn btn-text btn-secondary">Cancel</button>
+            <button id="deleteAccountConfirm" class="btn btn-text btn-danger">Permanently Delete</button>
         </div>
     </div>
 </div>
 
-
-
 <!-- Portal Confirm Modal -->
-<div id="portalConfirmModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
-        <h3 id="portalConfirmTitle" class="text-lg font-semibold mb-3">Confirm</h3>
-        <p id="portalConfirmMessage" class="text-sm text-[var(--text-secondary)] mb-5"></p>
-        <div class="flex gap-2 justify-end">
-            <button id="portalConfirmCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
-            <button id="portalConfirmOk" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Confirm</button>
+<div id="portalConfirmModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <h3 id="portalConfirmTitle" class="modal-title">Confirm</h3>
+        <p id="portalConfirmMessage" class="text-sm text-[var(--text-secondary)] mb-4"></p>
+        <div class="modal-actions">
+            <button id="portalConfirmCancel" class="btn btn-text btn-secondary">Cancel</button>
+            <button id="portalConfirmOk" class="btn btn-text btn-primary">Confirm</button>
         </div>
     </div>
 </div>
 
 <!-- Notification Toast -->
-<div id="notification" class="fixed bottom-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-4 transform translate-y-20 transition-transform duration-300 z-50 max-w-md flex items-start opacity-0 pointer-events-none">
+<div id="notification" class="notification-toast translate-y-20 opacity-0 pointer-events-none">
     <div id="notificationIcon" class="mr-3 mt-0.5"></div>
     <div>
         <h4 id="notificationTitle" class="font-semibold text-sm"></h4>
@@ -196,8 +194,8 @@
     </div>
 </div>
 
-<script type="module" src="js/api.js?v=10"></script>
-<script type="module" src="js/portal.js?v=10"></script>
+<script type="module" src="js/api.js?v=15"></script>
+<script type="module" src="js/portal.js?v=15"></script>
 
 </body>
 </html>

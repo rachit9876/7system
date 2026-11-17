@@ -37,8 +37,7 @@ const firebaseUtils = {
     },
     
     getMindMapsList: async (username, password) => {
-        // username/password are kept for API compatibility; access is always
-        // scoped to the currently authenticated Firebase user (uid).
+        // Access is always scoped to the currently authenticated Firebase user (uid).
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         const uid = auth.currentUser.uid;
         const sortMaps = (list) => list.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
@@ -88,10 +87,11 @@ const firebaseUtils = {
         }
     },
 
-    loadMindMap: async (username, password, mindmapName, mindmapKey = mindmapName) => {
+    loadMindMap: async (arg1, arg2, arg3, arg4) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        // Supports loadMindMap(mapKey) or legacy loadMindMap(username, password, mindmapName, mindmapKey)
+        const mindmapKey = (arg3 !== undefined || arg4 !== undefined) ? (arg4 || arg3) : arg1;
         try {
-            // Use the database key (which may differ from the display name).
             const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapKey}`));
             const data = snapshot.val();
             if (data) return { success: true, data: data.data };
@@ -115,8 +115,10 @@ const firebaseUtils = {
         }
     },
 
-    deleteMindMap: async (email, password, mindmapName, mindmapKey = mindmapName) => {
+    deleteMindMap: async (arg1, arg2, arg3, arg4) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        // Supports deleteMindMap(mapKey) or legacy deleteMindMap(email, password, mindmapName, mindmapKey)
+        const mindmapKey = (arg3 !== undefined || arg4 !== undefined) ? (arg4 || arg3) : arg1;
         const uid = auth.currentUser.uid;
         try {
             await Promise.all([
@@ -130,8 +132,11 @@ const firebaseUtils = {
         }
     },
 
-    renameMindMap: async (email, password, oldName, newName) => {
+    renameMindMap: async (arg1, arg2, arg3, arg4) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        // Supports renameMindMap(oldName, newName) or legacy renameMindMap(email, password, oldName, newName)
+        const oldName = (arg3 !== undefined && arg4 !== undefined) ? arg3 : arg1;
+        const newName = (arg3 !== undefined && arg4 !== undefined) ? arg4 : arg2;
         if (newName === '_index' || /[.$#\[\]\/]/.test(newName)) {
             return { success: false, message: 'Name contains invalid characters (. $ # [ ] /)' };
         }
@@ -206,8 +211,11 @@ const firebaseUtils = {
         }
     },
 
-    saveMindMap: async (email, password, mindmapName, data) => {
+    saveMindMap: async (arg1, arg2, arg3, arg4) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        // Supports saveMindMap(mindmapName, data) or legacy saveMindMap(email, password, mindmapName, data)
+        const mindmapName = (arg3 !== undefined && arg4 !== undefined) ? arg3 : arg1;
+        const data = (arg3 !== undefined && arg4 !== undefined) ? arg4 : arg2;
         if (mindmapName === '_index' || /[.$#\[\]\/]/.test(mindmapName)) {
             return { success: false, message: 'Name contains invalid characters (. $ # [ ] /)' };
         }
@@ -250,8 +258,11 @@ const firebaseUtils = {
         }
     },
 
-    togglePublicMindMap: async (email, password, mindmapName, isPublic) => {
+    togglePublicMindMap: async (arg1, arg2, arg3, arg4) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        // Supports togglePublicMindMap(mindmapName, isPublic) or legacy togglePublicMindMap(email, password, mindmapName, isPublic)
+        const mindmapName = (arg3 !== undefined && arg4 !== undefined) ? arg3 : arg1;
+        const isPublic = (arg3 !== undefined && arg4 !== undefined) ? arg4 : arg2;
         const uid = auth.currentUser.uid;
         try {
             await Promise.all([
