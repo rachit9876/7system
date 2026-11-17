@@ -1574,7 +1574,7 @@ import { showNotification } from "./shared/notifications.js";
                 return;
             }
             const md = nodesToMarkdown(state.nodes);
-            const aiPrompt = "Proofread the markdown list below and return the corrected output in a code block. Keep it strictly as an indented markdown list (using `-` or `*`) so I can paste it back into my tool. Note that `<br>` represents line breaks within a single node:\n\n";
+            const aiPrompt = "Proofread and fix grammar/spelling in the indented markdown list below, then return ONLY the corrected list inside a single code block. Keep the exact 2-space indentation (`-` bullets) and `<br>` line breaks within nodes, and preserve all URLs, image links, tables, and code/mermaid blocks unchanged:\n\n";
             const clipboardText = aiPrompt + md;
             try {
                 await navigator.clipboard.writeText(clipboardText);
