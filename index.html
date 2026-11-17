@@ -9,10 +9,11 @@
     <link rel="stylesheet" href="css/styles.css">
     <script>
         // Apply the saved theme before first paint to avoid a flash of the
-        // wrong theme. Falls back to the OS preference on first visit.
+        // wrong theme. Falls back to OS preference, defaulting to Dark Mode.
         try {
             var savedTheme = localStorage.getItem('mindmap-theme');
-            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && !prefersLight)) {
                 document.documentElement.classList.add('dark');
             }
         } catch (e) {}
