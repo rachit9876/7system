@@ -26,7 +26,7 @@
     --radius-sm: 6px;
     --radius: 8px;
     --radius-lg: 10px;
-    --control-size: 2.5rem;
+    --control-size: 2rem;
     --shadow-raised: 3px 3px 0 var(--shadow-dark);
     --shadow-raised-lg: 5px 5px 0 var(--shadow-dark);
     --transition: 120ms ease;
@@ -44,11 +44,11 @@ html.dark {
     --accent: #06402B;
     --accent-hover: #0d9488;
     --accent-soft: rgba(20, 184, 166, 0.18);
-    --border: #e9e7dc;
+    --border: #383b42;
     --shadow-light: rgba(255, 255, 255, 0.08);
     --shadow-dark: rgba(0, 0, 0, 0.5);
     --node-bg: #1f1f1f;
-    --node-border: #e9e7dc;
+    --node-border: #383b42;
     --node-text: #f4f4f0;
     --node-shadow: rgba(0, 0, 0, 0.45);
     --line: #cbd5e1;
@@ -155,7 +155,7 @@ main {
 .btn {
     width: var(--control-size);
     height: var(--control-size);
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text);
@@ -628,3 +628,31 @@ button:not(.btn):active {
 .select-none { user-select: none; -webkit-user-select: none; }
 .accent-\[var\(--accent\)\] { accent-color: var(--accent); }
 .hover\:bg-\[var\(--surface-muted\)\]:hover { background: var(--surface-muted); }
+
+/* --- Floating Pill Header (Desktop Canvas Only) --- */
+body:has(#mindMapCanvas) header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    padding: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 20;
+}
+body:has(#mindMapCanvas) header .header-left,
+body:has(#mindMapCanvas) header .toolbar-center,
+body:has(#mindMapCanvas) header .header-right {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-raised);
+}

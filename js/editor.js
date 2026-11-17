@@ -222,7 +222,7 @@ import { showNotification } from "./shared/notifications.js";
                 });
             };
 
-            const NODE_PADDING = 16;
+            const NODE_PADDING = 14;
             const EDITOR_EXTRA_PADDING = 24;
 
             // Cached CSS variables for performance (avoid getComputedStyle per frame)
@@ -337,17 +337,25 @@ import { showNotification } from "./shared/notifications.js";
 
             const drawConnections = () => {
                 ctx.strokeStyle = getCachedVar('--line');
-                ctx.lineWidth = 2.5;
+                ctx.lineWidth = 2;
                 for (const node of state.nodes) {
                     if (node.parentId) {
                         const parent = findNodeById(node.parentId);
                         if (parent) {
                             const start = { x: parent.x + parent.width / 2, y: parent.y + parent.height / 2 };
                             const end = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
-                            
+                            const dx = end.x - start.x;
+                            const dy = end.y - start.y;
+
                             ctx.beginPath();
                             ctx.moveTo(start.x, start.y);
-                            ctx.bezierCurveTo(start.x + 50, start.y, end.x - 50, end.y, end.x, end.y);
+                            if (Math.abs(dy) >= Math.abs(dx)) {
+                                const cpY = start.y + dy * 0.5;
+                                ctx.bezierCurveTo(start.x, cpY, end.x, cpY, end.x, end.y);
+                            } else {
+                                const cpX = start.x + dx * 0.5;
+                                ctx.bezierCurveTo(cpX, start.y, cpX, end.y, end.x, end.y);
+                            }
                             ctx.stroke();
                         }
                     }
@@ -816,6 +824,17 @@ import { showNotification } from "./shared/notifications.js";
 
                 dom.zoomInBtn.addEventListener('click', () => zoom(1.2));
                 dom.zoomOutBtn.addEventListener('click', () => zoom(0.8));
+                dom.zoomIndicator.addEventListener('click', () => {
+                    const cx = canvas.clientWidth / 2;
+                    const cy = canvas.clientHeight / 2;
+                    const worldX = (cx - state.pan.x) / state.zoom;
+                    const worldY = (cy - state.pan.y) / state.zoom;
+                    state.zoom = 1;
+                    state.pan.x = cx - worldX;
+                    state.pan.y = cy - worldY;
+                    dom.zoomIndicator.textContent = '100%';
+                    requestRedraw();
+                });
                 dom.fitViewBtn.addEventListener('click', fitView);
                 if (dom.autoLayoutBtn) dom.autoLayoutBtn.addEventListener('click', () => autoArrangeTree());
                 dom.undoBtn.addEventListener('click', undo);
@@ -2727,7 +2746,18 @@ import { showNotification } from "./shared/notifications.js";
                 
                 state.isDark = document.documentElement.classList.contains('dark');
                 if (window.mermaid) {
-                    mermaid.initialize({ startOnLoad: false, theme: state.isDark ? 'dark' : 'default' });
+                    mermaid.initialize({
+                        startOnLoad: false,
+                        theme: state.isDark ? 'dark' : 'default',
+                        themeVariables: state.isDark ? {
+                            darkMode: true,
+                            primaryTextColor: '#f3f4f6',
+                            textColor: '#f3f4f6',
+                            lineColor: '#9ca3af',
+                            mainBkg: '#1f2937',
+                            nodeBorder: '#4b5563'
+                        } : {}
+                    });
                 }
             };
 

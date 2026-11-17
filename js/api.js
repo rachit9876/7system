@@ -53,6 +53,7 @@ const firebaseUtils = {
                     key,
                     name: indexData[key].name || key,
                     timestamp: indexData[key].timestamp || 0,
+                    createdAt: indexData[key].createdAt || indexData[key].timestamp || 0,
                     isPublic: indexData[key].isPublic || false
                 })));
                 return { success: true, mindmaps };
@@ -70,6 +71,7 @@ const firebaseUtils = {
                     const meta = {
                         name: item.name || key,
                         timestamp: item.timestamp || 0,
+                        createdAt: item.createdAt || item.timestamp || 0,
                         isPublic: item.isPublic || false
                     };
                     migratedIndex[key] = meta;
@@ -211,15 +213,20 @@ const firebaseUtils = {
         }
         const uid = auth.currentUser.uid;
         try {
-            // Only fetch the boolean isPublic flag instead of downloading the entire old map
-            const isPublicSnap = await get(ref(db, `mindmaps/${uid}/${mindmapName}/isPublic`));
+            // Fetch lightweight metadata fields instead of downloading the entire old map
+            const [isPublicSnap, createdAtSnap] = await Promise.all([
+                get(ref(db, `mindmaps/${uid}/${mindmapName}/isPublic`)),
+                get(ref(db, `mindmaps/${uid}/${mindmapName}/createdAt`))
+            ]);
             const isPublic = Boolean(isPublicSnap.val());
             const timestamp = new Date().toISOString();
+            const createdAt = createdAtSnap.val() || timestamp;
 
             const payload = {
                 name: mindmapName,
                 data: data,
                 timestamp: timestamp,
+                createdAt: createdAt,
                 isPublic: isPublic
             };
             
@@ -228,6 +235,7 @@ const firebaseUtils = {
                 set(ref(db, `mindmaps/${uid}/_index/${mindmapName}`), {
                     name: mindmapName,
                     timestamp: timestamp,
+                    createdAt: createdAt,
                     isPublic: isPublic
                 })
             ]);

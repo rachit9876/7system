@@ -147,80 +147,80 @@
   </symbol>
 </svg>
 
-    <header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 flex justify-between items-center z-20">
-        <div class="header-left flex items-center gap-2">
-            <button id="importBtn" class="btn btn-secondary" title="Import JSON" aria-label="Import">
-                <svg class="w-5 h-5"><use href="#icon-import"/></svg>
+    <header class="pointer-events-none fixed top-0 left-0 right-0 p-3 flex justify-between items-center z-20">
+        <div class="header-left pointer-events-auto flex items-center gap-1 p-1.5 bg-[var(--bg-secondary)]/90 backdrop-blur-xl border border-[var(--border)] rounded-xl shadow-md">
+            <button id="importBtn" class="btn btn-secondary" title="Import JSON (Ctrl+O)" aria-label="Import">
+                <svg class="w-4 h-4"><use href="#icon-import"/></svg>
             </button>
             <button id="exportBtn" class="btn btn-secondary" title="Export JSON" aria-label="Export">
-                <svg class="w-5 h-5"><use href="#icon-export"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-export"/></svg>
             </button>
-            <div class="h-6 w-px bg-[var(--border)] mx-1"></div>
+            <div class="h-5 w-px bg-[var(--border)] mx-0.5"></div>
             <button id="importMdBtn" class="btn btn-secondary" title="Paste Markdown Tree" aria-label="Paste Markdown">
-                <svg class="w-5 h-5"><use href="#icon-paste-md"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-paste-md"/></svg>
             </button>
             <button id="exportMdBtn" class="btn btn-secondary" title="Copy as Markdown Tree" aria-label="Copy Markdown">
-                <svg class="w-5 h-5"><use href="#icon-copy-md"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-copy-md"/></svg>
             </button>
         </div>
-        <div class="toolbar-center absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-md">
+        <div class="toolbar-center pointer-events-auto flex items-center gap-1 p-1.5 bg-[var(--bg-secondary)]/90 backdrop-blur-xl border border-[var(--border)] rounded-xl shadow-md">
             <button id="undoBtn" class="btn btn-secondary" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
-                <svg class="w-5 h-5"><use href="#icon-undo"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-undo"/></svg>
             </button>
-            <button id="redoBtn" class="btn btn-secondary" title="Redo (Ctrl+Y)" aria-label="Redo" disabled>
-                <svg class="w-5 h-5"><use href="#icon-redo"/></svg>
+            <button id="redoBtn" class="btn btn-secondary" title="Redo (Ctrl+Y / Ctrl+Shift+Z)" aria-label="Redo" disabled>
+                <svg class="w-4 h-4"><use href="#icon-redo"/></svg>
             </button>
-            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <div class="w-px h-5 bg-[var(--border)] mx-0.5"></div>
             <button id="newCanvasBtn" class="btn btn-secondary" title="New Canvas" aria-label="New Canvas">
-                <svg class="w-5 h-5"><use href="#icon-new-file"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-new-file"/></svg>
             </button>
             <button id="addNodeBtn" class="btn btn-primary" title="Add Node" aria-label="Add Node">
-                <svg class="w-6 h-6"><use href="#icon-plus"/></svg>
+                <svg class="w-5 h-5"><use href="#icon-plus"/></svg>
             </button>
 
-            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <div class="w-px h-5 bg-[var(--border)] mx-0.5"></div>
             <button id="lockBtn" class="btn btn-secondary" title="Lock Nodes" aria-label="Lock Nodes">
-                <svg id="lock-icon-unlocked" class="w-5 h-5"><use href="#icon-lock-unlocked"/></svg>
-                <svg id="lock-icon-locked" class="w-5 h-5 hidden"><use href="#icon-lock-locked"/></svg>
+                <svg id="lock-icon-unlocked" class="w-4 h-4"><use href="#icon-lock-unlocked"/></svg>
+                <svg id="lock-icon-locked" class="w-4 h-4 hidden"><use href="#icon-lock-locked"/></svg>
             </button>
             <button id="zoomOutBtn" class="btn btn-secondary" title="Zoom Out (-)" aria-label="Zoom Out">
-                <svg class="w-5 h-5"><use href="#icon-minus"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-minus"/></svg>
             </button>
-            <div id="zoomIndicator" class="text-sm font-semibold w-16 text-center">100%</div>
+            <button id="zoomIndicator" class="text-xs font-semibold w-12 h-8 flex items-center justify-center rounded-md hover:bg-[var(--surface-muted)] cursor-pointer transition-colors" title="Click to reset zoom to 100%">100%</button>
             <button id="zoomInBtn" class="btn btn-secondary" title="Zoom In (+)" aria-label="Zoom In">
-                <svg class="w-6 h-6"><use href="#icon-plus"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-plus"/></svg>
             </button>
-            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <div class="w-px h-5 bg-[var(--border)] mx-0.5"></div>
             <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View" aria-label="Fit to View">
-                <svg class="w-5 h-5"><use href="#icon-fit-view"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-fit-view"/></svg>
             </button>
             <button id="autoLayoutBtn" class="btn btn-secondary" title="Auto-Arrange Tree (Ctrl+Shift+L)" aria-label="Auto-Arrange Tree">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h5v4H4V6zm11-2h5v4h-5V4zm0 12h5v4h-5v-4zM9 8h3v10h3M12 6h3"/></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h5v4H4V6zm11-2h5v4h-5V4zm0 12h5v4h-5v-4zM9 8h3v10h3M12 6h3"/></svg>
             </button>
             <button id="gridToggle" class="btn btn-secondary" title="Toggle Grid" aria-label="Toggle Grid">
-                <svg class="w-5 h-5"><use href="#icon-grid"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-grid"/></svg>
             </button>
         </div>
 
-        <div class="header-right flex items-center gap-2">
+        <div class="header-right pointer-events-auto flex items-center gap-1 p-1.5 bg-[var(--bg-secondary)]/90 backdrop-blur-xl border border-[var(--border)] rounded-xl shadow-md">
             <button id="accountBtn" class="btn btn-secondary" title="Account" aria-label="Account">
-                <svg class="w-5 h-5"><use href="#icon-user"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-user"/></svg>
             </button>
             <a href="portal.html" id="portalBtn" class="btn btn-secondary hidden" title="Dashboard/Portal" aria-label="Dashboard">
-                <svg class="w-5 h-5"><use href="#icon-dashboard"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-dashboard"/></svg>
             </a>
             <button id="logoutBtn" class="btn btn-secondary hidden" title="Logout" aria-label="Logout">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             </button>
             <button id="cloudSaveBtn" class="btn btn-secondary hidden" title="Save to Cloud" aria-label="Save to Cloud">
-                <svg class="w-5 h-5"><use href="#icon-cloud-upload"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-cloud-upload"/></svg>
             </button>
             <button id="cloudLoadBtn" class="btn btn-secondary hidden" title="Load from Cloud" aria-label="Load from Cloud">
-                <svg class="w-5 h-5"><use href="#icon-cloud-download"/></svg>
+                <svg class="w-4 h-4"><use href="#icon-cloud-download"/></svg>
             </button>
             <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme" aria-label="Toggle Theme">
-                <svg id="theme-icon-light" class="w-5 h-5"><use href="#icon-sun"/></svg>
-                <svg id="theme-icon-dark" class="w-5 h-5 hidden"><use href="#icon-moon"/></svg>
+                <svg id="theme-icon-light" class="w-4 h-4"><use href="#icon-sun"/></svg>
+                <svg id="theme-icon-dark" class="w-4 h-4 hidden"><use href="#icon-moon"/></svg>
             </button>
         </div>
     </header>

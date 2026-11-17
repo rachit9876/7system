@@ -220,7 +220,8 @@ const renderMindMaps = () => {
     }
 
     pageMaps.forEach(map => {
-        const date = map.timestamp ? new Date(map.timestamp).toLocaleDateString() : '—';
+        const editedDate = map.timestamp ? new Date(map.timestamp).toLocaleDateString() : '—';
+        const createdDate = map.createdAt ? new Date(map.createdAt).toLocaleDateString() : editedDate;
         
         const card = document.createElement('div');
         card.className = 'map-card';
@@ -234,7 +235,7 @@ const renderMindMaps = () => {
                 ${safeName} 
                 ${isPublic ? '<span class="text-[10px] uppercase tracking-wider bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-0.5 rounded-full font-bold border border-[var(--accent)]">Public</span>' : ''}
             </h3>
-            <p>Last edited: ${date}</p>
+            <p>Created: ${createdDate} · Edited: ${editedDate}</p>
             <div class="grid grid-cols-2 gap-2 mt-2">
                 <button class="btn btn-secondary btn-text text-xs py-1 rename-btn" data-name="${safeName}">Rename</button>
                 <button class="btn btn-secondary btn-text text-xs py-1 open-btn" data-name="${safeName}">Open</button>
