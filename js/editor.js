@@ -110,6 +110,13 @@ import { showNotification } from "./shared/notifications.js";
                 zoomOutBtn: document.getElementById('zoomOutBtn'),
                 zoomIndicator: document.getElementById('zoomIndicator'),
                 fitViewBtn: document.getElementById('fitViewBtn'),
+                autoLayoutBtn: document.getElementById('autoLayoutBtn'),
+                canvasSearchBar: document.getElementById('canvasSearchBar'),
+                canvasSearchInput: document.getElementById('canvasSearchInput'),
+                canvasSearchCount: document.getElementById('canvasSearchCount'),
+                canvasSearchPrev: document.getElementById('canvasSearchPrev'),
+                canvasSearchNext: document.getElementById('canvasSearchNext'),
+                canvasSearchClose: document.getElementById('canvasSearchClose'),
                 importBtn: document.getElementById('importBtn'),
                 exportBtn: document.getElementById('exportBtn'),
                 importMdBtn: document.getElementById('importMdBtn'),
@@ -249,7 +256,10 @@ import { showNotification } from "./shared/notifications.js";
 
             const draw = () => {
                 state.redrawPending = false;
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
                 
                 // Draw dot grid
                 ctx.save();
@@ -452,6 +462,7 @@ import { showNotification } from "./shared/notifications.js";
 
                 state.selectedNodeId = null;
                 state.editingNodeId = null;
+                state.nodes.forEach(updateNodeDimensions);
                 dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
             };
 
@@ -698,33 +709,73 @@ import { showNotification } from "./shared/notifications.js";
                     updateEditorSize();
                 });
                 
+                const formatSmartPastedUrl = (rawUrl, selectedText) => {
+                    if (selectedText) return `[${selectedText}](${rawUrl})`;
+                    try {
+                        const url = new URL(rawUrl);
+                        const pathname = decodeURIComponent(url.pathname || '');
+                        const lowerPath = pathname.toLowerCase();
+
+                        if (/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(lowerPath)) {
+                            const file = pathname.split('/').filter(Boolean).pop() || 'Image';
+                            return `![${file}](${rawUrl})`;
+                        }
+
+                        if (/\.(pdf|docx?|xlsx?|pptx?|csv|txt|md|zip)$/i.test(lowerPath)) {
+                            const file = pathname.split('/').filter(Boolean).pop() || 'Document';
+                            return `[${file}](${rawUrl})`;
+                        }
+
+                        const host = url.hostname.replace(/^www\./i, '').toLowerCase();
+                        let label = host;
+
+                        if (host === 'github.com') {
+                            const parts = pathname.split('/').filter(Boolean);
+                            label = parts.length >= 2 ? `GitHub: ${parts[0]}/${parts[1]}` : 'GitHub';
+                        } else if (host === 'youtube.com' || host === 'youtu.be') {
+                            label = 'YouTube';
+                        } else if (host === 'docs.google.com') {
+                            if (pathname.includes('/spreadsheets')) label = 'Google Sheet';
+                            else if (pathname.includes('/presentation')) label = 'Google Slides';
+                            else label = 'Google Doc';
+                        } else if (host === 'drive.google.com') {
+                            label = 'Google Drive';
+                        } else if (host === 'figma.com') {
+                            label = 'Figma';
+                        } else if (host === 'notion.so' || host === 'notion.site') {
+                            label = 'Notion';
+                        } else if (host === 'x.com' || host === 'twitter.com') {
+                            label = 'X';
+                        } else if (host === 'reddit.com') {
+                            label = 'Reddit';
+                        } else if (host === 'stackoverflow.com') {
+                            label = 'Stack Overflow';
+                        } else if (host.endsWith('wikipedia.org')) {
+                            label = 'Wikipedia';
+                        }
+
+                        return `[${label}](${rawUrl})`;
+                    } catch (err) {
+                        return `[Link](${rawUrl})`;
+                    }
+                };
+
                 nodeEditor.addEventListener('paste', (e) => {
-                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text').trim();
                     const urlRegex = /^(https?:\/\/[^\s]+)$/i;
                     
-                    if (urlRegex.test(pastedText.trim())) {
+                    if (urlRegex.test(pastedText)) {
                         const start = nodeEditor.selectionStart;
                         const end = nodeEditor.selectionEnd;
                         const textBefore = nodeEditor.value.substring(0, start);
                         const textAfter = nodeEditor.value.substring(end);
                         const selectedText = nodeEditor.value.substring(start, end);
                         
-                        // Check if it's already inside markdown links `](`, `<`, or `[text](`
+                        // Check if it's already inside markdown links `](`, `<`, or `![`
                         if (!textBefore.endsWith('](') && !textBefore.endsWith('<')) {
                             e.preventDefault();
                             
-                            let linkTitle = selectedText;
-                            if (!linkTitle) {
-                                const currentText = nodeEditor.value;
-                                let linkCount = 1;
-                                const matches = currentText.match(/\[Link (\d+)\]/g);
-                                if (matches) {
-                                    linkCount = Math.max(...matches.map(m => parseInt(m.match(/\d+/)[0]))) + 1;
-                                }
-                                linkTitle = `Link ${linkCount}`;
-                            }
-                            
-                            const markdownLink = `[${linkTitle}](${pastedText.trim()})`;
+                            const markdownLink = formatSmartPastedUrl(pastedText, selectedText);
                             nodeEditor.value = textBefore + markdownLink + textAfter;
                             nodeEditor.selectionStart = nodeEditor.selectionEnd = start + markdownLink.length;
                             updateEditorSize();
@@ -766,6 +817,7 @@ import { showNotification } from "./shared/notifications.js";
                 dom.zoomInBtn.addEventListener('click', () => zoom(1.2));
                 dom.zoomOutBtn.addEventListener('click', () => zoom(0.8));
                 dom.fitViewBtn.addEventListener('click', fitView);
+                if (dom.autoLayoutBtn) dom.autoLayoutBtn.addEventListener('click', () => autoArrangeTree());
                 dom.undoBtn.addEventListener('click', undo);
                 dom.redoBtn.addEventListener('click', redo);
                 dom.themeToggle.addEventListener('click', toggleTheme);
@@ -1651,10 +1703,27 @@ import { showNotification } from "./shared/notifications.js";
                 
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
-                img.onload = () => requestRedraw();
+                img.onload = () => {
+                    state.nodes.forEach(updateNodeDimensions);
+                    requestRedraw();
+                };
                 img.src = url;
                 imageCache.set(url, img);
                 return img;
+            };
+
+            const getRenderedImageSize = (url) => {
+                const maxWidth = 150;
+                const maxHeight = 100;
+                const img = imageCache.get(url);
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const ratio = Math.min(maxWidth / img.naturalWidth, maxHeight / img.naturalHeight, 1);
+                    return {
+                        width: Math.round(img.naturalWidth * ratio),
+                        height: Math.round(img.naturalHeight * ratio)
+                    };
+                }
+                return { width: maxWidth, height: maxHeight };
             };
             
             const mermaidCache = new Map();
@@ -1689,6 +1758,7 @@ import { showNotification } from "./shared/notifications.js";
                     const img = new Image();
                     img.onload = () => {
                         mermaidCache.set(cacheKey, { loading: false, img, width: img.naturalWidth || 300, height: img.naturalHeight || 200 });
+                        state.nodes.forEach(updateNodeDimensions);
                         requestRedraw();
                     };
                     img.src = svgData;
@@ -1718,10 +1788,9 @@ import { showNotification } from "./shared/notifications.js";
                     }
                     
                     if (part.image) {
-                        const maxWidth = 150;
-                        const maxHeight = 100;
-                        currentX += maxWidth + 5;
-                        currentLineHeight = Math.max(currentLineHeight, maxHeight + 10);
+                        const sz = getRenderedImageSize(part.image);
+                        currentX += sz.width + 5;
+                        currentLineHeight = Math.max(currentLineHeight, sz.height + 10);
                         continue;
                     }
 
@@ -2127,9 +2196,10 @@ import { showNotification } from "./shared/notifications.js";
 
                     // Handle images
                     if (part.image) {
-                        currentLineWidth += 155; // 150 + 5 spacing
-                        currentLineHeight = Math.max(currentLineHeight, 110); // Image height + padding
-                        currentLineMaxY = Math.max(currentLineMaxY, FONT_SIZE * 0.8 + 100); // Max image height is 100
+                        const sz = getRenderedImageSize(part.image);
+                        currentLineWidth += sz.width + 5;
+                        currentLineHeight = Math.max(currentLineHeight, sz.height + 10);
+                        currentLineMaxY = Math.max(currentLineMaxY, FONT_SIZE * 0.8 + sz.height);
                         return;
                     }
 
@@ -2477,7 +2547,7 @@ import { showNotification } from "./shared/notifications.js";
                     }
                     if (part.table || part.mermaid || part.image || part.heading) {
                         wrappedParts.push(part);
-                        if (part.image) currentLineWidth += 155;
+                        if (part.image) currentLineWidth += getRenderedImageSize(part.image).width + 5;
                         else currentLineWidth = 0;
                         return;
                     }
@@ -2663,23 +2733,172 @@ import { showNotification } from "./shared/notifications.js";
 
             init();
 
+        const layoutNodeTree = (nodes, startX = 100, startY = 100) => {
+            if (!nodes || nodes.length === 0) return;
+            const nodeIds = new Set(nodes.map(n => n.id));
+            const roots = nodes.filter(n => !n.parentId || !nodeIds.has(n.parentId));
+            if (roots.length === 0) return;
+
+            const childrenMap = new Map();
+            nodes.forEach(n => childrenMap.set(n.id, []));
+            nodes.forEach(n => {
+                if (n.parentId && childrenMap.has(n.parentId)) {
+                    childrenMap.get(n.parentId).push(n);
+                }
+            });
+
+            const getSize = (n) => ({ w: n.width || 200, h: n.height || 100 });
+            const H_GAP = 24;
+            const V_GAP = 48;
+
+            // Compute max node height per depth level so rows align cleanly without overlap
+            const levelHeights = new Map();
+            const measureLevels = (id, depth, seen = new Set()) => {
+                if (seen.has(id)) return;
+                seen.add(id);
+                const n = nodes.find(x => x.id === id);
+                if (!n) return;
+                const { h } = getSize(n);
+                levelHeights.set(depth, Math.max(levelHeights.get(depth) || 0, h));
+                (childrenMap.get(id) || []).forEach(c => measureLevels(c.id, depth + 1, seen));
+            };
+            roots.forEach(r => measureLevels(r.id, 0));
+
+            const levelY = new Map();
+            let accY = startY;
+            const maxDepth = Math.max(0, ...levelHeights.keys());
+            for (let d = 0; d <= maxDepth; d++) {
+                levelY.set(d, accY);
+                accY += (levelHeights.get(d) || 100) + V_GAP;
+            }
+
+            // Contour-packed Top-to-Bottom layout (Reingold-Tilford style)
+            // Returns { relX: Map<id, x>, leftContour: number[], rightContour: number[] }
+            const buildSubtree = (id, seen = new Set()) => {
+                if (seen.has(id)) return { relX: new Map(), left: [], right: [] };
+                seen.add(id);
+                const n = nodes.find(x => x.id === id);
+                const { w } = getSize(n);
+                const ch = (childrenMap.get(id) || []).filter(c => !seen.has(c.id));
+
+                if (ch.length === 0) {
+                    const relX = new Map([[id, 0]]);
+                    return { relX, left: [0], right: [w] };
+                }
+
+                const childTrees = ch.map(c => buildSubtree(c.id, new Set(seen)));
+                const offsets = [0];
+                let mergedRight = [...childTrees[0].right];
+                let mergedLeft = [...childTrees[0].left];
+
+                for (let i = 1; i < childTrees.length; i++) {
+                    const ct = childTrees[i];
+                    const sharedDepths = Math.min(mergedRight.length, ct.left.length);
+                    let shift = 0;
+                    for (let d = 0; d < sharedDepths; d++) {
+                        shift = Math.max(shift, mergedRight[d] + H_GAP - ct.left[d]);
+                    }
+                    offsets.push(shift);
+                    for (let d = 0; d < ct.right.length; d++) {
+                        const rVal = ct.right[d] + shift;
+                        const lVal = ct.left[d] + shift;
+                        if (d < mergedRight.length) {
+                            mergedRight[d] = Math.max(mergedRight[d], rVal);
+                            mergedLeft[d] = Math.min(mergedLeft[d], lVal);
+                        } else {
+                            mergedRight.push(rVal);
+                            mergedLeft.push(lVal);
+                        }
+                    }
+                }
+
+                const relX = new Map();
+                childTrees.forEach((ct, i) => {
+                    const off = offsets[i];
+                    ct.relX.forEach((x, cid) => relX.set(cid, x + off));
+                });
+
+                const firstChildX = relX.get(ch[0].id);
+                const lastChildX = relX.get(ch[ch.length - 1].id);
+                const lastChildW = getSize(ch[ch.length - 1]).w;
+                const parentX = (firstChildX + lastChildX + lastChildW) / 2 - w / 2;
+                relX.set(id, parentX);
+
+                return {
+                    relX,
+                    left: [parentX, ...mergedLeft],
+                    right: [parentX + w, ...mergedRight]
+                };
+            };
+
+            const assignPositions = (id, depth, offsetX, relX, seen = new Set()) => {
+                if (seen.has(id)) return;
+                seen.add(id);
+                const n = nodes.find(x => x.id === id);
+                if (!n) return;
+                n.x = offsetX + (relX.get(id) || 0);
+                n.y = levelY.get(depth) ?? startY;
+                (childrenMap.get(id) || []).forEach(c => assignPositions(c.id, depth + 1, offsetX, relX, seen));
+            };
+
+            let curRootX = startX;
+            roots.forEach(r => {
+                const tree = buildSubtree(r.id);
+                const minLeft = Math.min(...tree.left);
+                const maxRight = Math.max(...tree.right);
+                const shiftX = curRootX - minLeft;
+                assignPositions(r.id, 0, shiftX, tree.relX);
+                curRootX += (maxRight - minLeft) + H_GAP * 2;
+            });
+        };
+
+        const autoArrangeTree = () => {
+            if (state.nodes.length === 0) return;
+            layoutNodeTree(state.nodes, 100, 100);
+            saveState();
+            fitView();
+            showNotification('Auto-Arranged', `Vertical tree layout (${dom.zoomIndicator.textContent})`, 'success');
+        };
+
         window.addEventListener('paste', async (e) => {
             if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') {
                 return;
             }
             
             const text = (e.clipboardData || window.clipboardData).getData('text');
-            // Accept every bullet style the markdown parser understands.
-            if (!text || !text.split('\n').some(l => /^[-*+•]\s/.test(l.trim()))) {
-                return;
-            }
-            e.preventDefault();
-            
-            // Place the pasted tree at the last mouse position (world coords),
-            // falling back to the center of the viewport.
+            if (!text) return;
+
+            const trimmed = text.trim();
             const fallback = screenToWorld(canvas.clientWidth / 2, canvas.clientHeight / 2);
             const mouseX = window.lastMousePos ? window.lastMousePos.x : fallback.x;
             const mouseY = window.lastMousePos ? window.lastMousePos.y : fallback.y;
+
+            // 1. Smart bare-URL paste directly onto canvas
+            if (/^(https?:\/\/[^\s]+)$/i.test(trimmed)) {
+                e.preventDefault();
+                const formatted = formatSmartPastedUrl(trimmed, '');
+                const newNode = {
+                    id: state.nextNodeId++,
+                    text: formatted,
+                    x: mouseX,
+                    y: mouseY,
+                    width: 220,
+                    height: 80,
+                    parentId: state.selectedNodeId || null
+                };
+                state.nodes.push(newNode);
+                state.selectedNodeId = newNode.id;
+                saveState();
+                requestRedraw();
+                showNotification('Link Pasted', 'Created node from pasted URL.', 'success');
+                return;
+            }
+
+            // 2. Markdown bullet tree paste
+            if (!text.split('\n').some(l => /^[-*+•]\s/.test(l.trim()))) {
+                return;
+            }
+            e.preventDefault();
             
             const result = markdownToNodes(text, mouseX, mouseY);
             if (result.nodes.length > 0) {
@@ -2688,6 +2907,77 @@ import { showNotification } from "./shared/notifications.js";
                 saveState();
                 requestRedraw();
                 showNotification('Pasted', `Pasted ${result.nodes.length} nodes from clipboard!`, 'success');
+            }
+        });
+
+        // Quick Node Search (Ctrl+F) & Auto-Arrange Shortcut (Ctrl+Shift+L)
+        let searchMatches = [];
+        let searchMatchIndex = -1;
+
+        const focusSearchMatch = (idx) => {
+            if (searchMatches.length === 0) {
+                if (dom.canvasSearchCount) dom.canvasSearchCount.textContent = '0/0';
+                return;
+            }
+            searchMatchIndex = (idx + searchMatches.length) % searchMatches.length;
+            const node = searchMatches[searchMatchIndex];
+            state.selectedNodeId = node.id;
+            state.pan.x = canvas.clientWidth / 2 - (node.x + node.width / 2) * state.zoom;
+            state.pan.y = canvas.clientHeight / 2 - (node.y + node.height / 2) * state.zoom;
+            if (dom.canvasSearchCount) {
+                dom.canvasSearchCount.textContent = `${searchMatchIndex + 1}/${searchMatches.length}`;
+            }
+            requestRedraw();
+        };
+
+        const runCanvasSearch = () => {
+            const q = (dom.canvasSearchInput?.value || '').trim().toLowerCase();
+            if (!q) {
+                searchMatches = [];
+                searchMatchIndex = -1;
+                if (dom.canvasSearchCount) dom.canvasSearchCount.textContent = '0/0';
+                return;
+            }
+            searchMatches = state.nodes.filter(n => (n.text || '').toLowerCase().includes(q));
+            focusSearchMatch(0);
+        };
+
+        const openCanvasSearch = () => {
+            if (!dom.canvasSearchBar) return;
+            dom.canvasSearchBar.classList.remove('hidden');
+            dom.canvasSearchInput.focus();
+            dom.canvasSearchInput.select();
+            runCanvasSearch();
+        };
+
+        const closeCanvasSearch = () => {
+            if (!dom.canvasSearchBar) return;
+            dom.canvasSearchBar.classList.add('hidden');
+        };
+
+        if (dom.canvasSearchInput) {
+            dom.canvasSearchInput.addEventListener('input', runCanvasSearch);
+            dom.canvasSearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    focusSearchMatch(searchMatchIndex + (e.shiftKey ? -1 : 1));
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeCanvasSearch();
+                }
+            });
+        }
+        if (dom.canvasSearchPrev) dom.canvasSearchPrev.addEventListener('click', () => focusSearchMatch(searchMatchIndex - 1));
+        if (dom.canvasSearchNext) dom.canvasSearchNext.addEventListener('click', () => focusSearchMatch(searchMatchIndex + 1));
+        if (dom.canvasSearchClose) dom.canvasSearchClose.addEventListener('click', closeCanvasSearch);
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                openCanvasSearch();
+            } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+                e.preventDefault();
+                autoArrangeTree();
             }
         });
         

@@ -87,16 +87,22 @@
                 </div>
             </div>
             
-            <div class="mb-4">
+            <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <label class="inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 accent-[var(--accent)] mr-2">
                     <span class="text-sm font-medium">Select All</span>
                 </label>
+                <input type="text" id="mapSearchInput" class="px-3 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] w-full sm:w-64" placeholder="Search mind maps...">
             </div>
             
             <div id="mindmapsGrid" class="map-grid">
                 <!-- Mind map cards will be injected here -->
                 <p class="text-[var(--text-secondary)]">Loading mind maps...</p>
+            </div>
+            <div id="paginationControls" class="pagination-bar hidden">
+                <button id="prevPageBtn" class="btn btn-secondary btn-text text-sm py-1 px-3" type="button">Previous</button>
+                <span id="pageInfoText" class="text-sm text-[var(--text-secondary)] font-medium"></span>
+                <button id="nextPageBtn" class="btn btn-secondary btn-text text-sm py-1 px-3" type="button">Next</button>
             </div>
         </section>
 
@@ -169,6 +175,18 @@
 </div>
 
 
+
+<!-- Portal Confirm Modal -->
+<div id="portalConfirmModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+        <h3 id="portalConfirmTitle" class="text-lg font-semibold mb-3">Confirm</h3>
+        <p id="portalConfirmMessage" class="text-sm text-[var(--text-secondary)] mb-5"></p>
+        <div class="flex gap-2 justify-end">
+            <button id="portalConfirmCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+            <button id="portalConfirmOk" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Confirm</button>
+        </div>
+    </div>
+</div>
 
 <!-- Notification Toast -->
 <div id="notification" class="fixed bottom-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-4 transform translate-y-20 transition-transform duration-300 z-50 max-w-md flex items-start opacity-0 pointer-events-none">

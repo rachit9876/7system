@@ -74,16 +74,107 @@ if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-s
 let mindMaps = [];
 let selectedMapNames = new Set();
 let renamingMapName = null;
+const PAGE_SIZE = 12;
+let currentPage = 1;
+let searchQuery = '';
 
 // DOM Elements
 const mindmapsGrid = document.getElementById('mindmapsGrid');
+const mapSearchInput = document.getElementById('mapSearchInput');
+const paginationControls = document.getElementById('paginationControls');
+const prevPageBtn = document.getElementById('prevPageBtn');
+const nextPageBtn = document.getElementById('nextPageBtn');
+const pageInfoText = document.getElementById('pageInfoText');
 const selectAllCheckbox = document.getElementById('selectAllCheckbox');
 const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
 const bulkExportBtn = document.getElementById('bulkExportBtn');
 const bulkImportInput = document.getElementById('bulkImportInput');
 
+const portalConfirmModal = document.getElementById('portalConfirmModal');
+const portalConfirmTitle = document.getElementById('portalConfirmTitle');
+const portalConfirmMessage = document.getElementById('portalConfirmMessage');
+const portalConfirmCancel = document.getElementById('portalConfirmCancel');
+const portalConfirmOk = document.getElementById('portalConfirmOk');
+
+const showPortalConfirm = (message, title = 'Confirm', confirmText = 'Confirm', isDanger = false) => {
+    return new Promise((resolve) => {
+        portalConfirmTitle.textContent = title;
+        portalConfirmMessage.textContent = message;
+        portalConfirmOk.textContent = confirmText;
+        portalConfirmOk.className = isDanger
+            ? 'px-4 py-2 bg-[var(--danger)] text-white rounded-lg hover:bg-[#991b1b] transition-colors'
+            : 'px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors';
+        portalConfirmModal.classList.remove('hidden');
+
+        const cleanup = () => {
+            portalConfirmModal.classList.add('hidden');
+            portalConfirmOk.removeEventListener('click', onOk);
+            portalConfirmCancel.removeEventListener('click', onCancel);
+            portalConfirmModal.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onEsc);
+        };
+        const onOk = () => { cleanup(); resolve(true); };
+        const onCancel = () => { cleanup(); resolve(false); };
+        const onBackdrop = (e) => { if (e.target === portalConfirmModal) onCancel(); };
+        const onEsc = (e) => { if (e.key === 'Escape') onCancel(); };
+
+        portalConfirmOk.addEventListener('click', onOk);
+        portalConfirmCancel.addEventListener('click', onCancel);
+        portalConfirmModal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onEsc);
+        portalConfirmOk.focus();
+    });
+};
+
+const getFilteredMaps = () => {
+    if (!searchQuery) return mindMaps;
+    const q = searchQuery.toLowerCase();
+    return mindMaps.filter(m => (m.name || '').toLowerCase().includes(q));
+};
+
+if (mapSearchInput) {
+    mapSearchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.trim();
+        currentPage = 1;
+        renderMindMaps();
+    });
+}
+
+const updatePaginationUI = (filteredCount = mindMaps.length) => {
+    if (!paginationControls) return;
+    const totalPages = Math.ceil(filteredCount / PAGE_SIZE);
+    if (totalPages <= 1) {
+        paginationControls.classList.add('hidden');
+        return;
+    }
+    paginationControls.classList.remove('hidden');
+    pageInfoText.textContent = `Page ${currentPage} of ${totalPages} (${filteredCount} maps)`;
+    prevPageBtn.disabled = currentPage <= 1;
+    nextPageBtn.disabled = currentPage >= totalPages;
+};
+
+if (prevPageBtn) {
+    prevPageBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            renderMindMaps();
+        }
+    });
+}
+
+if (nextPageBtn) {
+    nextPageBtn.addEventListener('click', () => {
+        const totalPages = Math.ceil(mindMaps.length / PAGE_SIZE);
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderMindMaps();
+        }
+    });
+}
+
 const loadMindMaps = async () => {
     mindmapsGrid.innerHTML = '<p class="text-[var(--text-secondary)]">Loading mind maps...</p>';
+    if (paginationControls) paginationControls.classList.add('hidden');
     if (!window.firebaseUtils) {
         mindmapsGrid.innerHTML = `<p class="text-[var(--danger)]">Service unavailable.</p>`;
         return;
@@ -103,10 +194,22 @@ const loadMindMaps = async () => {
 };
 
 const renderMindMaps = () => {
-    if (mindMaps.length === 0) {
-        mindmapsGrid.innerHTML = '<p class="text-[var(--text-secondary)]">No mind maps found. Create one in the editor!</p>';
+    const filteredMaps = getFilteredMaps();
+    if (filteredMaps.length === 0) {
+        mindmapsGrid.innerHTML = searchQuery
+            ? '<p class="text-[var(--text-secondary)]">No mind maps match your search.</p>'
+            : '<p class="text-[var(--text-secondary)]">No mind maps found. Create one in the editor!</p>';
+        updatePaginationUI(0);
+        updateSelectionState();
         return;
     }
+
+    const totalPages = Math.max(1, Math.ceil(filteredMaps.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const pageMaps = filteredMaps.slice(startIdx, startIdx + PAGE_SIZE);
 
     mindmapsGrid.innerHTML = '';
     
@@ -116,7 +219,7 @@ const renderMindMaps = () => {
         return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 
-    mindMaps.forEach(map => {
+    pageMaps.forEach(map => {
         const date = map.timestamp ? new Date(map.timestamp).toLocaleDateString() : '—';
         
         const card = document.createElement('div');
@@ -183,9 +286,12 @@ const renderMindMaps = () => {
             const makePublic = !toggleBtn.classList.contains('active');
             
             if (makePublic) {
-                if (!confirm('Are you sure you want to make this mind map public? Anyone with the link will be able to view it.')) {
-                    return;
-                }
+                const ok = await showPortalConfirm(
+                    'Are you sure you want to make this mind map public? Anyone with the link will be able to view it.',
+                    'Enable Public Access',
+                    'Make Public'
+                );
+                if (!ok) return;
             }
             
             toggleBtn.classList.toggle('active');
@@ -229,6 +335,7 @@ const renderMindMaps = () => {
         mindmapsGrid.appendChild(card);
     });
     
+    updatePaginationUI(filteredMaps.length);
     updateSelectionState();
 };
 
@@ -252,7 +359,13 @@ selectAllCheckbox.addEventListener('change', (e) => {
 
 // Single Actions
 const singleDelete = async (name) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    const ok = await showPortalConfirm(
+        `Are you sure you want to delete "${name}"? This cannot be undone.`,
+        'Delete Mind Map',
+        'Delete',
+        true
+    );
+    if (!ok) return;
     
     if (!window.firebaseUtils) {
         showNotification('Error', 'Service unavailable', 'error');
@@ -283,7 +396,13 @@ const downloadJson = (filename, data) => {
 
 // Bulk Actions
 bulkDeleteBtn.addEventListener('click', async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedMapNames.size} mind maps?`)) return;
+    const ok = await showPortalConfirm(
+        `Are you sure you want to delete ${selectedMapNames.size} mind maps? This cannot be undone.`,
+        'Delete Selected Maps',
+        'Delete All',
+        true
+    );
+    if (!ok) return;
     
     bulkDeleteBtn.disabled = true;
     bulkDeleteBtn.textContent = 'Deleting...';

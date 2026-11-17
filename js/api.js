@@ -40,17 +40,45 @@ const firebaseUtils = {
         // username/password are kept for API compatibility; access is always
         // scoped to the currently authenticated Firebase user (uid).
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        const uid = auth.currentUser.uid;
+        const sortMaps = (list) => list.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
         try {
-            const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}`));
+            // Fast path: read only the lightweight metadata index so listing
+            // maps on /portal or /mobile.html does not download full node trees.
+            const indexRef = ref(db, `mindmaps/${uid}/_index`);
+            const indexSnap = await get(indexRef);
+            const indexData = indexSnap.val();
+            if (indexData && typeof indexData === 'object') {
+                const mindmaps = sortMaps(Object.keys(indexData).map(key => ({
+                    key,
+                    name: indexData[key].name || key,
+                    timestamp: indexData[key].timestamp || 0,
+                    isPublic: indexData[key].isPublic || false
+                })));
+                return { success: true, mindmaps };
+            }
+
+            // Fallback & one-time auto-migration for existing maps saved before _index existed
+            const snapshot = await get(ref(db, `mindmaps/${uid}`));
             const data = snapshot.val();
             if (data) {
-                const mindmaps = Object.keys(data).map(key => ({
-                    key,
-                    name: data[key].name || key,
-                    timestamp: data[key].timestamp || 0,
-                    isPublic: data[key].isPublic || false
-                })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                return { success: true, mindmaps };
+                const migratedIndex = {};
+                const mindmaps = [];
+                Object.keys(data).forEach(key => {
+                    if (key === '_index') return;
+                    const item = data[key] || {};
+                    const meta = {
+                        name: item.name || key,
+                        timestamp: item.timestamp || 0,
+                        isPublic: item.isPublic || false
+                    };
+                    migratedIndex[key] = meta;
+                    mindmaps.push({ key, ...meta });
+                });
+                if (Object.keys(migratedIndex).length > 0) {
+                    set(indexRef, migratedIndex).catch(() => {});
+                }
+                return { success: true, mindmaps: sortMaps(mindmaps) };
             }
             return { success: true, mindmaps: [] };
         } catch (error) {
@@ -87,9 +115,13 @@ const firebaseUtils = {
 
     deleteMindMap: async (email, password, mindmapName, mindmapKey = mindmapName) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        const uid = auth.currentUser.uid;
         try {
-            await remove(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapKey}`));
-            await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapKey}`));
+            await Promise.all([
+                remove(ref(db, `mindmaps/${uid}/${mindmapKey}`)),
+                remove(ref(db, `mindmaps/${uid}/_index/${mindmapKey}`)),
+                remove(ref(db, `public_mindmaps/${uid}/${mindmapKey}`))
+            ]);
             return { success: true, message: 'Deleted successfully' };
         } catch (error) {
             return { success: false, message: error.message };
@@ -98,24 +130,32 @@ const firebaseUtils = {
 
     renameMindMap: async (email, password, oldName, newName) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
-        if (/[.$#\[\]\/]/.test(newName)) {
+        if (newName === '_index' || /[.$#\[\]\/]/.test(newName)) {
             return { success: false, message: 'Name contains invalid characters (. $ # [ ] /)' };
         }
+        const uid = auth.currentUser.uid;
         try {
-            const oldRef = ref(db, `mindmaps/${auth.currentUser.uid}/${oldName}`);
+            const oldRef = ref(db, `mindmaps/${uid}/${oldName}`);
             const snapshot = await get(oldRef);
             const data = snapshot.val();
             if (!data) return { success: false, message: 'Mind map not found' };
             
             data.name = newName;
             data.timestamp = new Date().toISOString();
+            const isPublic = data.isPublic || false;
             
-            await set(ref(db, `mindmaps/${auth.currentUser.uid}/${newName}`), data);
+            await set(ref(db, `mindmaps/${uid}/${newName}`), data);
             await remove(oldRef);
+            await set(ref(db, `mindmaps/${uid}/_index/${newName}`), {
+                name: newName,
+                timestamp: data.timestamp,
+                isPublic
+            });
+            await remove(ref(db, `mindmaps/${uid}/_index/${oldName}`));
 
-            if (data.isPublic) {
-                await set(ref(db, `public_mindmaps/${auth.currentUser.uid}/${newName}`), data);
-                await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${oldName}`));
+            if (isPublic) {
+                await set(ref(db, `public_mindmaps/${uid}/${newName}`), data);
+                await remove(ref(db, `public_mindmaps/${uid}/${oldName}`));
             }
 
             return { success: true, message: 'Renamed successfully' };
@@ -156,7 +196,9 @@ const firebaseUtils = {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
         try {
             const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}`));
-            return { success: true, mindmaps: snapshot.val() || {} };
+            const val = snapshot.val() || {};
+            delete val._index;
+            return { success: true, mindmaps: val };
         } catch (error) {
             return { success: false, message: error.message };
         }
@@ -164,24 +206,34 @@ const firebaseUtils = {
 
     saveMindMap: async (email, password, mindmapName, data) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        if (mindmapName === '_index' || /[.$#\[\]\/]/.test(mindmapName)) {
+            return { success: false, message: 'Name contains invalid characters (. $ # [ ] /)' };
+        }
+        const uid = auth.currentUser.uid;
         try {
-            // First fetch existing to check isPublic flag
-            const existingRef = ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`);
-            const snapshot = await get(existingRef);
-            const existingData = snapshot.val() || {};
-            const isPublic = existingData.isPublic || false;
+            // Only fetch the boolean isPublic flag instead of downloading the entire old map
+            const isPublicSnap = await get(ref(db, `mindmaps/${uid}/${mindmapName}/isPublic`));
+            const isPublic = Boolean(isPublicSnap.val());
+            const timestamp = new Date().toISOString();
 
             const payload = {
                 name: mindmapName,
                 data: data,
-                timestamp: new Date().toISOString(),
+                timestamp: timestamp,
                 isPublic: isPublic
             };
             
-            await set(existingRef, payload);
+            await Promise.all([
+                set(ref(db, `mindmaps/${uid}/${mindmapName}`), payload),
+                set(ref(db, `mindmaps/${uid}/_index/${mindmapName}`), {
+                    name: mindmapName,
+                    timestamp: timestamp,
+                    isPublic: isPublic
+                })
+            ]);
             
             if (isPublic) {
-                await set(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`), payload);
+                await set(ref(db, `public_mindmaps/${uid}/${mindmapName}`), payload);
             }
             
             return { success: true, message: 'Saved successfully' };
@@ -192,14 +244,18 @@ const firebaseUtils = {
 
     togglePublicMindMap: async (email, password, mindmapName, isPublic) => {
         if (!auth.currentUser) return { success: false, message: 'Not authenticated' };
+        const uid = auth.currentUser.uid;
         try {
-            await update(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`), { isPublic });
+            await Promise.all([
+                update(ref(db, `mindmaps/${uid}/${mindmapName}`), { isPublic }),
+                update(ref(db, `mindmaps/${uid}/_index/${mindmapName}`), { isPublic })
+            ]);
             
             if (isPublic) {
-                const snapshot = await get(ref(db, `mindmaps/${auth.currentUser.uid}/${mindmapName}`));
-                await set(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`), snapshot.val());
+                const snapshot = await get(ref(db, `mindmaps/${uid}/${mindmapName}`));
+                await set(ref(db, `public_mindmaps/${uid}/${mindmapName}`), snapshot.val());
             } else {
-                await remove(ref(db, `public_mindmaps/${auth.currentUser.uid}/${mindmapName}`));
+                await remove(ref(db, `public_mindmaps/${uid}/${mindmapName}`));
             }
             return { success: true, message: `Mind map is now ${isPublic ? 'public' : 'private'}` };
         } catch (error) {
