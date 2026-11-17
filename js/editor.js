@@ -1522,48 +1522,9 @@ import { showNotification } from "./shared/notifications.js";
                 stack.push({ depth, id: node.id });
             });
 
-            // Second pass: Calculate layout
-            const roots = newNodes.filter(n => !n.parentId);
-            
-            // Calculate height required for each subtree
-            const calculateHeight = (nodeId) => {
-                const children = newNodes.filter(n => n.parentId === nodeId);
-                if (children.length === 0) return 140; // Base spacing per node
-                return children.reduce((sum, child) => sum + calculateHeight(child.id), 0);
-            };
-
-            // Recursively position nodes
-            const positionNode = (nodeId, x, topY) => {
-                const node = newNodes.find(n => n.id === nodeId);
-                const children = newNodes.filter(n => n.parentId === nodeId);
-                
-                node.x = x;
-                
-                if (children.length === 0) {
-                    node.y = topY + 70; // Center in its 140px vertical slot
-                    return;
-                }
-                
-                let currentY = topY;
-                children.forEach(child => {
-                    const childHeight = calculateHeight(child.id);
-                    positionNode(child.id, x + 350, currentY); // 350px horizontal spacing
-                    currentY += childHeight;
-                });
-                
-                // Parent's Y is centered among its children
-                const firstChild = children[0];
-                const lastChild = children[children.length - 1];
-                node.y = (firstChild.y + lastChild.y) / 2;
-            };
-
-            // Position all roots
-            let currentRootY = startY;
-            roots.forEach(root => {
-                const rootHeight = calculateHeight(root.id);
-                positionNode(root.id, startX, currentRootY);
-                currentRootY += rootHeight;
-            });
+            // Second pass: measure real node dimensions and apply vertical top-to-bottom layout
+            newNodes.forEach(updateNodeDimensions);
+            layoutNodeTree(newNodes, startX, startY);
             
             return { nodes: newNodes, nextId: currentId };
         };
