@@ -339,14 +339,14 @@
 
     <!-- Project List Modal -->
     <div id="projectListModal" role="dialog" aria-modal="true" class="modal-backdrop hidden">
-        <div class="modal-card">
+        <div class="modal-card max-h-[90vh]">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="modal-title mb-0">Your Mind Maps</h3>
                 <button id="projectListClose" class="btn btn-secondary" title="Close" aria-label="Close">
                     <svg class="w-4 h-4"><use href="#icon-x"/></svg>
                 </button>
             </div>
-            <div id="projectListContent" class="max-h-96 overflow-y-auto border border-[var(--border)] rounded-lg bg-[var(--bg)] p-2">
+            <div id="projectListContent" class="flex-1 min-h-[100px] overflow-y-auto border border-[var(--border)] rounded-lg bg-[var(--bg)] p-2">
                 <!-- Project list will be populated here -->
             </div>
         </div>
