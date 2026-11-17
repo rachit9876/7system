@@ -597,7 +597,13 @@ import { showNotification } from "./shared/notifications.js";
                 node.height = dimensions.height + NODE_PADDING * 2;
             };
 
+            const nodeEditorModal = document.getElementById('nodeEditorModal');
+            const nodeEditorDoneBtn = document.getElementById('nodeEditorDoneBtn');
+            const nodeEditorCancelBtn = document.getElementById('nodeEditorCancelBtn');
+            const nodeEditorToolbar = document.getElementById('nodeEditorToolbar');
+
             const updateEditorSize = () => {
+                if (nodeEditorModal) return;
                 if (!state.editingNodeId) return;
                 const node = findNodeById(state.editingNodeId);
                 if (!node) return;
@@ -642,14 +648,13 @@ import { showNotification } from "./shared/notifications.js";
                 state.editingNodeId = nodeId;
                 state.editingOriginalText = node.text;
                 
-                const effectiveZoom = state.zoom;
-                
                 nodeEditor.value = node.text;
-                nodeEditor.style.fontSize = `${FONT_SIZE * effectiveZoom}px`;
-                nodeEditor.style.padding = `${NODE_PADDING * effectiveZoom}px`;
-                nodeEditor.style.lineHeight = `${FONT_SIZE * 1.4 * effectiveZoom}px`;
-                nodeEditor.classList.add('active');
-                updateEditorSize();
+                if (nodeEditorModal) {
+                    nodeEditorModal.classList.remove('hidden');
+                } else {
+                    nodeEditor.classList.add('active');
+                    updateEditorSize();
+                }
                 nodeEditor.focus();
                 nodeEditor.select();
                 requestRedraw();
@@ -673,6 +678,9 @@ import { showNotification } from "./shared/notifications.js";
             const hideNodeEditor = () => {
                 state.editingNodeId = null;
                 state.editingOriginalText = null;
+                if (nodeEditorModal) {
+                    nodeEditorModal.classList.add('hidden');
+                }
                 nodeEditor.classList.remove('active');
             };
 
@@ -700,21 +708,73 @@ import { showNotification } from "./shared/notifications.js";
                 canvas.addEventListener('dblclick', onDoubleClick);
                 canvas.addEventListener('contextmenu', onContextMenu);
 
-                nodeEditor.addEventListener('blur', finishEditingNode);
-                nodeEditor.addEventListener('keydown', e => {
-                    if (e.key === 'Enter') {
-                        if (e.shiftKey) {
-                            e.preventDefault();
-                            finishEditingNode();
-                        } else {
-                            setTimeout(updateEditorSize, 0);
+                if (nodeEditorModal) {
+                    nodeEditorModal.addEventListener('click', (e) => {
+                        if (e.target === nodeEditorModal) finishEditingNode();
+                    });
+                }
+                if (nodeEditorDoneBtn) nodeEditorDoneBtn.addEventListener('click', finishEditingNode);
+                if (nodeEditorCancelBtn) nodeEditorCancelBtn.addEventListener('click', cancelEditingNode);
+
+                if (nodeEditorToolbar) {
+                    nodeEditorToolbar.addEventListener('click', (e) => {
+                        const btn = e.target.closest('button[data-md]');
+                        if (!btn) return;
+                        const type = btn.dataset.md;
+                        const start = nodeEditor.selectionStart;
+                        const end = nodeEditor.selectionEnd;
+                        const val = nodeEditor.value;
+                        const sel = val.substring(start, end);
+                        let insert = '';
+                        let cursorOffset = 0;
+
+                        if (type === 'bold') {
+                            insert = `**${sel || 'bold text'}**`;
+                            cursorOffset = sel ? insert.length : 2;
+                        } else if (type === 'italic') {
+                            insert = `*${sel || 'italic text'}*`;
+                            cursorOffset = sel ? insert.length : 1;
+                        } else if (type === 'strike') {
+                            insert = `~~${sel || 'strikethrough'}~~`;
+                            cursorOffset = sel ? insert.length : 2;
+                        } else if (type === 'h1') {
+                            insert = `# ${sel || 'Heading 1'}`;
+                            cursorOffset = insert.length;
+                        } else if (type === 'h2') {
+                            insert = `## ${sel || 'Heading 2'}`;
+                            cursorOffset = insert.length;
+                        } else if (type === 'code') {
+                            insert = `\`${sel || 'code'}\``;
+                            cursorOffset = sel ? insert.length : 1;
+                        } else if (type === 'link') {
+                            insert = `[${sel || 'Link'}](https://)`;
+                            cursorOffset = insert.length - 1;
+                        } else if (type === 'list') {
+                            insert = `- ${sel || 'List item'}`;
+                            cursorOffset = insert.length;
+                        } else if (type === 'task') {
+                            insert = `- [ ] ${sel || 'Task item'}`;
+                            cursorOffset = insert.length;
+                        } else if (type === 'table') {
+                            insert = `\n| Column 1 | Column 2 |\n| :--- | :--- |\n| Value 1 | Value 2 |\n`;
+                            cursorOffset = insert.length;
+                        } else if (type === 'mermaid') {
+                            insert = `\n\`\`\`mermaid\ngraph TD\n  A[Start] --> B[End]\n\`\`\`\n`;
+                            cursorOffset = insert.length;
                         }
+
+                        nodeEditor.value = val.substring(0, start) + insert + val.substring(end);
+                        nodeEditor.focus();
+                        nodeEditor.selectionStart = nodeEditor.selectionEnd = start + cursorOffset;
+                    });
+                }
+
+                nodeEditor.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' && e.shiftKey) {
+                        e.preventDefault();
+                        finishEditingNode();
                     }
                     if (e.key === 'Escape') cancelEditingNode();
-                });
-                
-                nodeEditor.addEventListener('input', () => {
-                    updateEditorSize();
                 });
                 
                 const formatSmartPastedUrl = (rawUrl, selectedText) => {
@@ -1152,9 +1212,20 @@ import { showNotification } from "./shared/notifications.js";
                 reader.onload = (event) => {
                     try {
                         const data = JSON.parse(event.target.result);
-                        applyProjectData(data);
-                        saveState();
-                        requestRedraw();
+                        if (data && typeof data.markdown === 'string') {
+                            const result = markdownToNodes(data.markdown, 100, 100);
+                            state.nodes = result.nodes;
+                            state.nextNodeId = result.nextId;
+                            state.selectedNodeId = null;
+                            state.editingNodeId = null;
+                            saveState();
+                            fitView();
+                            showNotification('Imported', `Imported ${result.nodes.length} nodes.`, 'success');
+                        } else {
+                            applyProjectData(data);
+                            saveState();
+                            requestRedraw();
+                        }
                     } catch (error) {
                         showNotification('Error', 'Invalid file format', 'error');
                     }
@@ -1596,31 +1667,12 @@ import { showNotification } from "./shared/notifications.js";
         };
 
         const exportAsJSON = () => {
-
                 const now = new Date();
                 const pad = (n) => String(n).padStart(2, '0');
                 const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
                 
                 const exportData = {
-                    timestamp: now.toISOString(),
-                    settings: {
-                        zoom: state.zoom,
-                        pan: state.pan,
-                        theme: state.isDark ? 'dark' : 'light',
-                        showGrid: state.showGrid
-                    },
-                    // Strip the internal _cachedText field from exported data.
-                    nodes: state.nodes.map(({ _cachedText, ...rest }) => rest),
-                    preview: {
-                        canvasWidth: canvas.clientWidth,
-                        canvasHeight: canvas.clientHeight,
-                        nodeCount: state.nodes.length
-                    },
-                    metadata: {
-                        nextNodeId: state.nextNodeId,
-                        selectedNodeId: state.selectedNodeId,
-                        version: '1.0'
-                    }
+                    markdown: nodesToMarkdown(state.nodes)
                 };
                 
                 const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -1637,7 +1689,20 @@ import { showNotification } from "./shared/notifications.js";
                 const isDark = document.documentElement.classList.contains('dark');
                 state.isDark = isDark;
                 if (window.mermaid) {
-                    mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+                    mermaid.initialize({
+                        startOnLoad: false,
+                        theme: isDark ? 'dark' : 'default',
+                        themeVariables: isDark ? {
+                            darkMode: true,
+                            primaryTextColor: '#f3f4f6',
+                            textColor: '#f3f4f6',
+                            lineColor: '#d1d5db',
+                            arrowheadColor: '#d1d5db',
+                            edgeLabelBackground: '#1f2937',
+                            mainBkg: '#1f2937',
+                            nodeBorder: '#6b7280'
+                        } : {}
+                    });
                 }
                 dom.themeIconLight.classList.toggle('hidden', isDark);
                 dom.themeIconDark.classList.toggle('hidden', !isDark);
@@ -2646,16 +2711,22 @@ import { showNotification } from "./shared/notifications.js";
                     fetch('sample-mindmap.json')
                         .then(r => r.json())
                         .then(data => {
-                            applyProjectData(data);
-                            // A previously saved theme preference takes
-                            // precedence over the theme bundled with the sample.
+                            if (data && typeof data.markdown === 'string') {
+                                const result = markdownToNodes(data.markdown, 100, 100);
+                                state.nodes = result.nodes;
+                                state.nextNodeId = result.nextId;
+                                fitView();
+                            } else {
+                                applyProjectData(data);
+                            }
+                            // Default to Dark Mode on first visit; only use Light Mode if explicitly saved.
                             const savedTheme = localStorage.getItem('mindmap-theme');
-                            if (savedTheme === 'dark') {
-                                document.documentElement.classList.add('dark');
-                                state.isDark = true;
-                            } else if (savedTheme === 'light') {
+                            if (savedTheme === 'light') {
                                 document.documentElement.classList.remove('dark');
                                 state.isDark = false;
+                            } else {
+                                document.documentElement.classList.add('dark');
+                                state.isDark = true;
                             }
                             const savedGrid = localStorage.getItem('mindmap-grid');
                             if (savedGrid) state.showGrid = savedGrid === 'on';
@@ -2714,9 +2785,11 @@ import { showNotification } from "./shared/notifications.js";
                             darkMode: true,
                             primaryTextColor: '#f3f4f6',
                             textColor: '#f3f4f6',
-                            lineColor: '#9ca3af',
+                            lineColor: '#d1d5db',
+                            arrowheadColor: '#d1d5db',
+                            edgeLabelBackground: '#1f2937',
                             mainBkg: '#1f2937',
-                            nodeBorder: '#4b5563'
+                            nodeBorder: '#6b7280'
                         } : {}
                     });
                 }

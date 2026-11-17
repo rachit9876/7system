@@ -10,12 +10,10 @@
 
     <link rel="stylesheet" href="css/portal.css">
     <script>
-        // Apply the saved theme before first paint to avoid a flash of the
-        // wrong theme. Falls back to OS preference, defaulting to Dark Mode.
+        // Apply the saved theme before first paint (defaults to Dark Mode).
         try {
             var savedTheme = localStorage.getItem('mindmap-theme');
-            var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && !prefersLight)) {
+            if (savedTheme !== 'light') {
                 document.documentElement.classList.add('dark');
             }
         } catch (e) {}

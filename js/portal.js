@@ -385,6 +385,51 @@ const singleDelete = async (name) => {
 
 
 
+const nodesToMarkdown = (nodes = []) => {
+    const nodeIds = new Set(nodes.map(n => n.id));
+    const roots = nodes.filter(n => !n.parentId || !nodeIds.has(n.parentId));
+    let md = '';
+    const visited = new Set();
+    const traverse = (node, depth) => {
+        if (visited.has(node.id)) return;
+        visited.add(node.id);
+        const indent = '  '.repeat(depth);
+        const safeText = (node.text || '').replace(/\n/g, '<br>');
+        md += `${indent}- ${safeText}\n`;
+        nodes.filter(n => n.parentId === node.id)
+            .sort((a, b) => (a.y || 0) - (b.y || 0))
+            .forEach(c => traverse(c, depth + 1));
+    };
+    roots.sort((a, b) => (a.y || 0) - (b.y || 0)).forEach(r => traverse(r, 0));
+    return md.trim();
+};
+
+const markdownToNodesData = (md) => {
+    const lines = md.replace(/\r\n?/g, '\n').split('\n');
+    const nodes = [];
+    let currentId = 1;
+    const stack = [];
+    lines.forEach(line => {
+        if (!line.trim()) return;
+        const match = line.match(/^(\s*)([-*+•]\s+)?(.*)$/);
+        if (!match || !match[2]) {
+            if (nodes.length > 0) {
+                nodes[nodes.length - 1].text += '\n' + line.trim().replace(/<br>/gi, '\n');
+            }
+            return;
+        }
+        const spaces = match[1].replace(/\t/g, '  ').length;
+        const depth = Math.floor(spaces / 2);
+        const text = match[3].replace(/<br>/gi, '\n').trim();
+        while (stack.length > 0 && stack[stack.length - 1].depth >= depth) stack.pop();
+        const parentId = stack.length > 0 ? stack[stack.length - 1].id : null;
+        const node = { id: currentId++, text, x: depth * 260 + 100, y: nodes.length * 140 + 100, parentId, width: 200, height: 100 };
+        nodes.push(node);
+        stack.push({ depth, id: node.id });
+    });
+    return { nodes, metadata: { nextNodeId: currentId } };
+};
+
 const downloadJson = (filename, data) => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -447,7 +492,10 @@ bulkExportBtn.addEventListener('click', async () => {
                 if (selectedMapNames.has(map.name)) {
                     const mapRes = await window.firebaseUtils.loadMindMap(sessionAuth.username, null, map.name);
                     if (mapRes.success) {
-                        downloadJson(map.name, mapRes.data);
+                        const exportPayload = mapRes.data && Array.isArray(mapRes.data.nodes)
+                            ? { markdown: nodesToMarkdown(mapRes.data.nodes) }
+                            : mapRes.data;
+                        downloadJson(map.name, exportPayload);
                         count++;
                     }
                 }
@@ -475,7 +523,10 @@ bulkImportInput.addEventListener('change', async (e) => {
     for (const file of files) {
         try {
             const text = await file.text();
-            const data = JSON.parse(text);
+            let data = JSON.parse(text);
+            if (data && typeof data.markdown === 'string') {
+                data = markdownToNodesData(data.markdown);
+            }
             if (!data || !Array.isArray(data.nodes)) {
                 throw new Error('Invalid mind map file');
             }

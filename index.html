@@ -8,12 +8,10 @@
     <link rel="icon" type="image/png" href="assets/mapMind.png">
     <link rel="stylesheet" href="css/styles.css">
     <script>
-        // Apply the saved theme before first paint to avoid a flash of the
-        // wrong theme. Falls back to OS preference, defaulting to Dark Mode.
+        // Apply the saved theme before first paint (defaults to Dark Mode).
         try {
             var savedTheme = localStorage.getItem('mindmap-theme');
-            var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && !prefersLight)) {
+            if (savedTheme !== 'light') {
                 document.documentElement.classList.add('dark');
             }
         } catch (e) {}
@@ -150,10 +148,10 @@
 
     <header class="pointer-events-none fixed top-0 left-0 right-0 p-3 flex justify-between items-center z-20">
         <div class="header-left pointer-events-auto flex items-center gap-1 p-1.5 bg-[var(--bg-secondary)]/90 backdrop-blur-xl border border-[var(--border)] rounded-xl shadow-md">
-            <button id="importBtn" class="btn btn-secondary" title="Import JSON (Ctrl+O)" aria-label="Import">
+            <button id="importBtn" class="btn btn-secondary" title="Import JSON (Ctrl+O)" aria-label="Import JSON">
                 <svg class="w-4 h-4"><use href="#icon-import"/></svg>
             </button>
-            <button id="exportBtn" class="btn btn-secondary" title="Export JSON" aria-label="Export">
+            <button id="exportBtn" class="btn btn-secondary" title="Export JSON" aria-label="Export JSON">
                 <svg class="w-4 h-4"><use href="#icon-export"/></svg>
             </button>
             <div class="h-5 w-px bg-[var(--border)] mx-0.5"></div>
@@ -228,7 +226,6 @@
 
     <main class="flex-1 relative">
     <canvas id="mindMapCanvas"></canvas>
-    <textarea id="node-editor" class="absolute text-left outline-none bg-[var(--node-bg)] border border-[var(--node-border)] text-[var(--node-text)] rounded-lg p-2 z-10 resize-none shadow-lg" rows="1" wrap="soft"></textarea>
     <div id="canvasSearchBar" class="hidden absolute top-3 right-3 z-20 flex items-center gap-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-2">
         <input type="text" id="canvasSearchInput" class="px-2 py-1 text-sm border border-[var(--border)] rounded bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] w-48" placeholder="Find node (Ctrl+F)...">
         <span id="canvasSearchCount" class="text-xs text-[var(--text-secondary)] min-w-[3rem] text-center">0/0</span>
@@ -249,7 +246,40 @@
     </div>
     
     <input type="file" id="file-input" class="hidden" accept=".json">
-    
+
+    <!-- Rich Node Editor Modal -->
+    <div id="nodeEditorModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="node-editor-card">
+            <div class="node-editor-bar">
+                <div class="flex flex-wrap items-center gap-1" id="nodeEditorToolbar">
+                    <button type="button" data-md="bold" class="px-2 py-1 text-xs font-bold rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Bold (**text**)">B</button>
+                    <button type="button" data-md="italic" class="px-2 py-1 text-xs italic rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Italic (*text*)">I</button>
+                    <button type="button" data-md="strike" class="px-2 py-1 text-xs line-through rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Strikethrough (~~text~~)">S</button>
+                    <span class="w-px h-4 bg-[var(--border)] mx-1"></span>
+                    <button type="button" data-md="h1" class="px-2 py-1 text-xs font-semibold rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Heading 1">H1</button>
+                    <button type="button" data-md="h2" class="px-2 py-1 text-xs font-semibold rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Heading 2">H2</button>
+                    <span class="w-px h-4 bg-[var(--border)] mx-1"></span>
+                    <button type="button" data-md="code" class="px-2 py-1 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Inline Code (`code`)">&lt;/&gt;</button>
+                    <button type="button" data-md="link" class="px-2 py-1 text-xs rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Link ([label](url))">Link</button>
+                    <button type="button" data-md="list" class="px-2 py-1 text-xs rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Bullet List">- List</button>
+                    <button type="button" data-md="task" class="px-2 py-1 text-xs rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Task List">[ ] Task</button>
+                    <button type="button" data-md="table" class="px-2 py-1 text-xs rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Insert Table">Table</button>
+                    <button type="button" data-md="mermaid" class="px-2 py-1 text-xs rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]" title="Insert Mermaid Diagram">Diagram</button>
+                </div>
+            </div>
+            <div class="p-4">
+                <textarea id="node-editor" rows="12" class="w-full p-3 text-sm leading-relaxed outline-none bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] rounded-lg resize-y focus:ring-2 focus:ring-[var(--accent)]" placeholder="Write Markdown, lists, tables, or ```mermaid diagrams..."></textarea>
+            </div>
+            <div class="node-editor-footer">
+                <span class="text-xs text-[var(--text-secondary)]">Shift+Enter to save · Esc to cancel</span>
+                <div class="flex gap-2">
+                    <button type="button" id="nodeEditorCancelBtn" class="px-3 py-1.5 text-sm border border-[var(--border)] rounded-lg hover:bg-[var(--surface-muted)] transition-colors">Cancel</button>
+                    <button type="button" id="nodeEditorDoneBtn" class="px-4 py-1.5 text-sm bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Account Login/Register Modal -->
     <div id="accountModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
         <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">

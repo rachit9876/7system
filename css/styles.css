@@ -222,25 +222,76 @@ textarea:focus-visible {
 }
 
 #node-editor {
-    background: var(--node-bg);
-    color: var(--node-text);
-    border: 2px solid var(--node-border);
+    background: var(--bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-raised-lg);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     tab-size: 4;
     overflow: auto;
     white-space: pre-wrap;
     overflow-wrap: break-word;
     word-break: break-word;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease-in-out;
+    width: 100%;
+    min-height: 260px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    resize: vertical;
 }
 
-#node-editor.active {
-    opacity: 1;
-    pointer-events: auto;
+#nodeEditorModal .node-editor-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    width: 100%;
+    max-width: 44rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#nodeEditorModal .node-editor-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+#nodeEditorToolbar button[data-md] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+#nodeEditorToolbar button[data-md]:hover {
+    background: var(--surface-muted);
+}
+
+#nodeEditorModal .node-editor-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
 }
 
 #context-menu {
